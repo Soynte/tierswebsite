@@ -49,6 +49,18 @@
       }
     },
     {
+      "name": "freezingViolet",
+      "tiers": {
+        "classic": "HT2",
+        "sword": "HT3",
+        "trident": "HT3",
+        "pot": "HT4",
+        "uhc": "HT3",
+        "shield": "LT3",
+        "smp": "HT4"
+      }
+    },
+    {
       "name": "Kraney",
       "tiers": {
         "classic": "HT3",
