@@ -109,6 +109,18 @@
       }
     },
     {
+      "name": "Rafunny",
+      "tiers": {
+        "classic": "HT1",
+        "sword": "HT2",
+        "trident": "HT2",
+        "pot": "LT3",
+        "uhc": "HT2",
+        "shield": "HT3",
+        "smp": "LT3"
+      }
+    },
+    {
       "name": "Soynte",
       "tiers": {
         "classic": "LT2",
