@@ -61,6 +61,18 @@
       }
     },
     {
+      "name": "Fandush",
+      "tiers": {
+        "classic": "LT2",
+        "sword": "LT3",
+        "trident": "HT3",
+        "pot": "HT4",
+        "uhc": "HT4",
+        "shield": "HT4",
+        "smp": "LT5"
+      }
+    },
+    {
       "name": "freezingViolet",
       "tiers": {
         "classic": "HT2",
