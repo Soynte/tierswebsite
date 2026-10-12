@@ -37,6 +37,18 @@
       }
     },
     {
+      "name": "decobra",
+      "tiers": {
+        "classic": "HT2",
+        "sword": "HT2",
+        "trident": "LT3",
+        "pot": "HT4",
+        "uhc": "LT3",
+        "shield": "LT4",
+        "smp": "HT5"
+      }
+    },
+    {
       "name": "DeeTeaYasuo",
       "tiers": {
         "classic": "HT2",
