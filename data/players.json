@@ -1,4 +1,5 @@
 {
+  "updated": "2026-10-12",
   "players": [
     {
       "name": "Asimoa",
@@ -267,7 +268,7 @@
         "classic": "HT3",
         "sword": "HT3",
         "trident": "LT3",
-        "pot": "HT2",
+        "pot": "LT1",
         "uhc": "LT4",
         "shield": "LT4",
         "smp": "LT3"
