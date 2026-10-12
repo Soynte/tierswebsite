@@ -215,6 +215,18 @@
         "shield": "LT2",
         "smp": "HT3"
       }
+    },
+    {
+      "name": "ZB3AM",
+      "tiers": {
+        "classic": "HT4",
+        "sword": "LT4",
+        "trident": "LT4",
+        "pot": "HT5",
+        "uhc": "LT5",
+        "shield": "LT5",
+        "smp": "LT4"
+      }
     }
   ]
 }
