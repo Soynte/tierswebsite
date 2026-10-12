@@ -73,6 +73,18 @@
       }
     },
     {
+      "name": "NormalX",
+      "tiers": {
+        "classic": "HT3",
+        "sword": "HT3",
+        "trident": "HT3",
+        "pot": "HT4",
+        "uhc": "HT4",
+        "shield": "HT4",
+        "smp": "HT4"
+      }
+    },
+    {
       "name": "NotCoded",
       "tiers": {
         "classic": "HT3",
