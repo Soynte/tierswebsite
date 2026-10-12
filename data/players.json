@@ -242,9 +242,9 @@
         "sword": "LT2",
         "trident": "LT2",
         "pot": "HT3",
-        "uhc": "LT3",
-        "shield": "LT3",
-        "smp": "LT3"
+        "uhc": "HT3",
+        "shield": "HT3",
+        "smp": "HT3"
       }
     },
     {
@@ -319,7 +319,7 @@
         "classic": "HT2",
         "sword": "HT3",
         "trident": "HT3",
-        "pot": "LT3",
+        "pot": "HT3",
         "uhc": "LT2",
         "shield": "LT2",
         "smp": "HT3"
