@@ -106,31 +106,92 @@
   },
   "hallOfFame": {
     "intro": "Players who left their mark on CombatAdvanced. Inducted by the staff.",
-    "categories": [
+    "colors": [
       {
-        "id": "champion",
-        "name": "Champion",
+        "name": "Gold",
         "color": "#e8b931"
       },
       {
-        "id": "legend",
-        "name": "Legend",
+        "name": "Silver",
+        "color": "#b9c1cc"
+      },
+      {
+        "name": "Bronze",
+        "color": "#c57d4a"
+      },
+      {
+        "name": "Blue",
         "color": "#3b82f6"
       },
       {
-        "id": "staff",
-        "name": "Staff",
+        "name": "Green",
         "color": "#4ade80"
       },
       {
-        "id": "builder",
-        "name": "Builder",
+        "name": "Purple",
         "color": "#c49bf2"
+      },
+      {
+        "name": "Red",
+        "color": "#ef7d7d"
       }
-    ]
+    ],
+    "poses": [
+      {
+        "id": "default",
+        "name": "Standing"
+      },
+      {
+        "id": "ultimate",
+        "name": "Hero"
+      },
+      {
+        "id": "crossed",
+        "name": "Arms crossed"
+      },
+      {
+        "id": "cheering",
+        "name": "Cheering"
+      },
+      {
+        "id": "relaxing",
+        "name": "Relaxed"
+      },
+      {
+        "id": "pointing",
+        "name": "Pointing"
+      },
+      {
+        "id": "marching",
+        "name": "Marching"
+      },
+      {
+        "id": "walking",
+        "name": "Walking"
+      },
+      {
+        "id": "lunging",
+        "name": "Lunging"
+      },
+      {
+        "id": "archer",
+        "name": "Archer"
+      },
+      {
+        "id": "kicking",
+        "name": "Kicking"
+      },
+      {
+        "id": "high_ground",
+        "name": "High ground"
+      }
+    ],
+    "defaultPose": "default"
   },
   "skins": {
-    "body": "https://mc-heads.net/body/{name}/240",
+    "body": "https://starlightskins.lunareclipse.studio/render/{pose}/{name}/full",
+    "bodyBackup": "https://visage.surgeplay.com/full/512/{name}",
+    "bodyBasic": "https://mc-heads.net/body/{name}/240",
     "bust": "https://render.crafty.gg/3d/bust/{name}",
     "head": "https://mc-heads.net/head/{name}/128",
     "face": "https://mc-heads.net/avatar/{name}/64",

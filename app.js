@@ -37,15 +37,36 @@
     regions: {},
     hallOfFame: {
       intro: '',
-      categories: [
-        { id: 'champion', name: 'Champion', color: '#e8b931' },
-        { id: 'legend', name: 'Legend', color: '#3b82f6' },
-        { id: 'staff', name: 'Staff', color: '#4ade80' },
-        { id: 'builder', name: 'Builder', color: '#c49bf2' }
-      ]
+      colors: [
+        { name: 'Gold', color: '#e8b931' },
+        { name: 'Silver', color: '#b9c1cc' },
+        { name: 'Bronze', color: '#c57d4a' },
+        { name: 'Blue', color: '#3b82f6' },
+        { name: 'Green', color: '#4ade80' },
+        { name: 'Purple', color: '#c49bf2' },
+        { name: 'Red', color: '#ef7d7d' }
+      ],
+      poses: [
+        { id: 'default', name: 'Standing' },
+        { id: 'ultimate', name: 'Hero' },
+        { id: 'crossed', name: 'Arms crossed' },
+        { id: 'cheering', name: 'Cheering' },
+        { id: 'relaxing', name: 'Relaxed' },
+        { id: 'pointing', name: 'Pointing' },
+        { id: 'marching', name: 'Marching' },
+        { id: 'walking', name: 'Walking' },
+        { id: 'lunging', name: 'Lunging' },
+        { id: 'archer', name: 'Archer' },
+        { id: 'kicking', name: 'Kicking' },
+        { id: 'high_ground', name: 'High ground' }
+      ],
+      defaultPose: 'default',
+      categories: []
     },
     skins: {
-      body: 'https://mc-heads.net/body/{name}/240',
+      body: 'https://starlightskins.lunareclipse.studio/render/{pose}/{name}/full',
+      bodyBackup: 'https://visage.surgeplay.com/full/512/{name}',
+      bodyBasic: 'https://mc-heads.net/body/{name}/240',
       bust: 'https://render.crafty.gg/3d/bust/{name}',
       head: 'https://mc-heads.net/head/{name}/128',
       face: 'https://mc-heads.net/avatar/{name}/64',
@@ -90,9 +111,14 @@
     modeById: new Map(),
     tiers: [],            // every tier, best first, as listed in config.json "points"
     tierById: new Map(),
+    retiredTiers: [],     // the same tiers as "RHT1" and so on
+    filter: { region: '', retired: false },
     titles: [],           // highest first
-    categories: [],       // Hall of Fame categories
+    categories: [],       // old Hall of Fame categories, only to read old files
     categoryById: new Map(),
+    hofColors: [],        // the colour choices for an inductee
+    poses: [],            // the 3D poses for an inductee's picture
+    defaultPose: 'default',
     rawPlayers: null,     // players.json exactly as loaded; the editor starts from it
     players: [],
     ranked: [],           // players with at least one tier, best first
@@ -236,10 +262,14 @@
       const group = Number(match[2]);
       const id = `${level}T${group}`;
       if (state.tierById.has(id)) continue;
-      const tier = { id, level, group, points: n, order: state.tiers.length, name: `${LEVEL_NAMES[level]} Tier ${group}` };
+      const tier = { id, level, group, points: n, order: state.tiers.length, name: `${LEVEL_NAMES[level]} Tier ${group}`, retired: false };
       state.tiers.push(tier);
       state.tierById.set(id, tier);
     }
+    // Every tier has a retired twin ("RLT2"): shown, but worth no points unless the
+    // viewer chooses to count retired tiers. Retired ones sort after active ones.
+    state.retiredTiers = state.tiers.map((t) => Object.assign({}, t, { id: `R${t.id}`, retired: true, order: t.order + 1000, name: `Retired ${t.name}` }));
+    for (const t of state.retiredTiers) state.tierById.set(t.id, t);
 
     state.titles = (Array.isArray(c.titles) ? c.titles : DEFAULTS.titles)
       .filter((t) => t && t.name)
@@ -257,6 +287,12 @@
       state.categories.push(entry);
       state.categoryById.set(id, entry);
     }
+    state.hofColors = (Array.isArray(c.hallOfFame.colors) ? c.hallOfFame.colors : DEFAULTS.hallOfFame.colors)
+      .filter((x) => x && x.name).map((x) => ({ name: String(x.name), color: safeColor(x.color, '#a3a8b0') }));
+    state.poses = (Array.isArray(c.hallOfFame.poses) ? c.hallOfFame.poses : DEFAULTS.hallOfFame.poses)
+      .filter((x) => x && typeof x.id === 'string' && /^[a-z_]+$/.test(x.id)).map((x) => ({ id: x.id, name: String(x.name || x.id) }));
+    const dp = String(c.hallOfFame.defaultPose || '');
+    state.defaultPose = state.poses.some((x) => x.id === dp) ? dp : (state.poses[0] ? state.poses[0].id : 'default');
   }
 
   function parseTier(value) {
@@ -265,6 +301,17 @@
 
   function titleFor(points) {
     return state.titles.find((t) => points >= t.minPoints) || { name: 'Unranked', minPoints: 0, color: '#7b818c' };
+  }
+
+  /** "2025 – 2026", "2025 – present", or one date. */
+  function periodText(h) {
+    const from = h.from;
+    const to = h.to;
+    if (!from && !to) return '';
+    if (!from) return `until ${to}`;
+    if (!to) return `${from} – present`;
+    if (to.toLowerCase() === from.toLowerCase()) return from;
+    return `${from} – ${to}`;
   }
 
   function categoryOf(id) {
@@ -303,7 +350,7 @@
         }
         const tier = parseTier(value);
         if (!tier) {
-          warnings.push(`${name}: "${value}" is not a tier (${mode.name}). Use one of ${state.tiers.map((t) => t.id).join(', ')}.`);
+          warnings.push(`${name}: "${value}" is not a tier (${mode.name}). Use one of ${state.tiers.map((t) => t.id).join(', ')}, or the same with R in front for retired.`);
           continue;
         }
         tiers[mode.id] = tier;
@@ -329,20 +376,41 @@
     for (const p of state.players) {
       let points = 0;
       let best = 0;
+      let all = 0;
+      let bestAll = 0;
+      let active = 0;
       for (const tier of Object.values(p.tiers)) {
+        all += tier.points;
+        if (tier.points > bestAll) bestAll = tier.points;
+        if (tier.retired) continue;
+        active++;
         points += tier.points;
         if (tier.points > best) best = tier.points;
       }
-      p.points = points;
-      p.best = best;
+      Object.assign(p, { points, best, pointsAll: all, bestAll, active, retiredPoints: all - points });
       p.title = titleFor(points);
     }
-    // Ties on points go to the better single tier, then the name.
-    state.ranked = state.players
-      .filter((p) => Object.keys(p.tiers).length > 0)
-      .sort((a, b) => b.points - a.points || b.best - a.best || a.key.localeCompare(b.key));
+    // The default view (active tiers, every region) gives each player their rank.
+    state.ranked = rankList({ region: '', retired: false }).map((row) => row.p);
     state.ranked.forEach((p, i) => { p.rank = i + 1; });
-    state.byKey = new Map(state.ranked.map((p) => [p.key, p]));
+    // Profiles also open for players whose tiers are all retired.
+    state.byKey = new Map(state.players.filter((p) => Object.keys(p.tiers).length).map((p) => [p.key, p]));
+  }
+
+  /**
+   * The overall list for a filter: optionally one region, optionally counting
+   * retired tiers. Ties on points go to the better single tier, then the name.
+   */
+  function rankList(filter) {
+    const rows = [];
+    for (const p of state.players) {
+      if (filter.region && p.region !== filter.region) continue;
+      if (!(filter.retired ? Object.keys(p.tiers).length : p.active)) continue;
+      rows.push({ p, points: filter.retired ? p.pointsAll : p.points, best: filter.retired ? p.bestAll : p.best });
+    }
+    rows.sort((a, b) => b.points - a.points || b.best - a.best || a.p.key.localeCompare(b.p.key));
+    rows.forEach((row, i) => { row.rank = i + 1; row.title = titleFor(row.points); });
+    return rows;
   }
 
   /** Reads halloffame.json the same way. */
@@ -366,19 +434,26 @@
         return;
       }
       seen.add(key);
-      const category = typeof entry.category === 'string' ? entry.category.trim().toLowerCase() : '';
-      if (category && !state.categoryById.has(category)) {
-        warnings.push(`${name}: the Hall of Fame category "${entry.category}" is not in config.json.`);
-      }
-      const year = Number.isInteger(Number(entry.year)) && Number(entry.year) > 0 ? Number(entry.year) : null;
+      // Older files used a fixed "category", a "title" and a single "year".
+      const str = (v) => (typeof v === 'string' ? v.trim() : typeof v === 'number' ? String(v) : '');
+      const oldCat = str(entry.category) ? categoryOf(str(entry.category).toLowerCase()) : null;
+      const role = str(entry.role) || str(entry.title) || (oldCat ? oldCat.name : '');
+      const from = str(entry.from) || str(entry.year);
+      const to = str(entry.to);
+      const pose = typeof entry.pose === 'string' && /^[a-z_]+$/.test(entry.pose) ? entry.pose : state.defaultPose;
+      const start = /(\d{4})/.exec(from);
       inductees.push({
         name,
         key,
-        uuid: typeof entry.uuid === 'string' ? entry.uuid.trim() : '',
-        category,
-        year,
-        title: typeof entry.title === 'string' ? entry.title.trim() : '',
-        text: typeof entry.text === 'string' ? entry.text.trim() : '',
+        uuid: str(entry.uuid),
+        role,
+        color: safeColor(entry.color, oldCat ? oldCat.color : (state.hofColors[0] ? state.hofColors[0].color : '#e8b931')),
+        from,
+        to,
+        startYear: start ? Number(start[1]) : 0,
+        quote: str(entry.quote),
+        text: str(entry.text),
+        pose,
         featured: entry.featured === true,
         order: index
       });
@@ -477,7 +552,9 @@
     const s = state.config.skins;
     const id = encodeURIComponent(player.uuid || player.name);
     const fill = (template) => (template ? template.split('{name}').join(id) : '');
-    const deep = (kind === 'body' ? [s.body, s.bust, s.head] : kind === 'bust' ? [s.bust, s.head] : []).map(fill).filter(Boolean);
+    const pose = encodeURIComponent(player.pose || state.defaultPose);
+    const deep = (kind === 'body' ? [s.body, s.bodyBackup, s.bodyBasic, s.bust, s.head] : kind === 'bust' ? [s.bust, s.head] : [])
+      .map((t) => fill(t).split('{pose}').join(pose)).filter(Boolean);
     const flat = [fill(s.face), fill(s.faceBackup)].filter(Boolean);
     const urls = deep.concat(flat);
     const classes = ['skin', cls, kind !== 'face' && !deep.length ? 'flat' : ''].filter(Boolean).join(' ');
@@ -517,8 +594,9 @@
     if (!tier) {
       return `<div class="tier none" data-tip="${esc(mode.name)}: no tier" aria-hidden="true"><span class="tier-icon">${modeIcon(mode)}</span><span class="tier-label">–</span></div>`;
     }
-    const tip = `${mode.name}: ${tier.name}, ${plural(tier.points, 'point')}`;
-    return `<div class="tier" style="--tc:${tierColor(tier)}" data-tip="${esc(tip)}"><span class="tier-icon">${modeIcon(mode)}</span><span class="tier-label"><span class="sr-only">${esc(mode.name)} </span>${tier.id}</span></div>`;
+    const worth = tier.retired && !state.filter.retired ? 'no points' : plural(tier.points, 'point');
+    const tip = `${mode.name}: ${tier.name}, ${worth}`;
+    return `<div class="tier${tier.retired ? ' retired' : ''}" style="--tc:${tierColor(tier)}" data-tip="${esc(tip)}"><span class="tier-icon">${modeIcon(mode)}</span><span class="tier-label"><span class="sr-only">${esc(mode.name)} </span>${tier.id}</span></div>`;
   }
 
   function pageHead(title, metaHtml) {
@@ -530,6 +608,21 @@
     if (state.updated && formatDate(state.updated)) parts.push(`<span class="dot">Updated ${formatDate(state.updated)}</span>`);
     parts.push('<span class="dot"><button class="link-btn" type="button" data-action="info">How points work</button></span>');
     return parts.join('');
+  }
+
+  function filterBar() {
+    const regions = [...new Set(state.players.map((p) => p.region).filter(Boolean))].sort();
+    const hasRetired = state.players.some((p) => Object.values(p.tiers).some((t) => t.retired));
+    if (!regions.length && !hasRetired) return '';
+    const f = state.filter;
+    if (f.region && !regions.includes(f.region)) f.region = '';
+    const region = regions.length
+      ? `<label class="filter-field">Region <select class="select" data-filter="region"><option value="">All</option>${regions.map((r) => `<option value="${esc(r)}"${r === f.region ? ' selected' : ''}>${esc(r)}</option>`).join('')}</select></label>`
+      : '';
+    const retired = hasRetired
+      ? `<label class="check"><input type="checkbox" data-filter="retired"${f.retired ? ' checked' : ''}> Count retired tiers</label>`
+      : '';
+    return `<div class="list-filter"${anim(1)}>${region}${retired}</div>`;
   }
 
   function renderHeader() {
@@ -610,12 +703,12 @@
 
   function renderOverall() {
     renderTabs('overall');
-    const list = state.ranked;
-    const hasRegion = list.some((p) => p.region);
-    const rows = list.map((p, i) => `<a class="row${medal(p.rank)}" href="#/player/${encodeURIComponent(p.name)}" style="--title-color:${p.title.color}"${anim(i + 1)}>
-        <div class="rank-num">${p.rank}</div>
+    const list = rankList(state.filter);
+    const hasRegion = state.players.some((p) => p.region);
+    const rows = list.map(({ p, points, rank, title }, i) => `<a class="row${medal(rank)}" href="#/player/${encodeURIComponent(p.name)}" style="--title-color:${title.color}"${anim(i + 2)}>
+        <div class="rank-num">${rank}</div>
         <div class="bust-box">${skinImg('bust', p, 'rank-bust', 60)}</div>
-        <div class="player"><div class="p-name">${esc(p.name)}</div><div class="p-sub"><span class="p-title">${esc(p.title.name)}</span><span>${plural(p.points, 'point')}</span></div></div>
+        <div class="player"><div class="p-name">${esc(p.name)}</div><div class="p-sub"><span class="p-title">${esc(title.name)}</span><span>${plural(points, 'point')}</span></div></div>
         ${hasRegion ? `<div class="region-cell">${regionText(p.region)}</div>` : ''}
         <div class="tiers">${state.modes.map((m) => tierChip(m, p.tiers[m.id])).join('')}</div>
       </a>`).join('');
@@ -624,13 +717,15 @@
           <div class="board-head" aria-hidden="true"><span class="th-rank">#</span><span></span><span>Player</span>${hasRegion ? '<span>Region</span>' : ''}<span class="th-tiers">Tiers</span></div>
           ${rows}
         </div>`
-      : '<div class="empty-board">Nobody is on the tier list yet.</div>';
-    main.innerHTML = pageHead('Overall', rankingMeta(list.length)) + board;
+      : `<div class="empty-board">${state.filter.region ? `Nobody from ${esc(state.filter.region)} is on the list.` : 'Nobody is on the tier list yet.'}</div>`;
+    main.innerHTML = pageHead('Overall', rankingMeta(list.length)) + filterBar() + board;
   }
 
   function renderMode(mode) {
     renderTabs(mode.id);
-    const inMode = state.ranked.filter((p) => p.tiers[mode.id]);
+    const f = state.filter;
+    const inMode = state.players.filter((p) => p.tiers[mode.id] && (!f.region || p.region === f.region))
+      .sort((a, b) => b.points - a.points || a.key.localeCompare(b.key));
     const groups = [...new Set(state.tiers.map((t) => t.group))].sort((a, b) => a - b);
     const columns = groups.map((group, gi) => {
       const list = inMode
@@ -638,23 +733,27 @@
         .sort((a, b) => a.tiers[mode.id].order - b.tiers[mode.id].order || b.points - a.points || a.key.localeCompare(b.key));
       const entries = list.map((p) => {
         const tier = p.tiers[mode.id];
-        return `<li><a class="tier-player" href="#/player/${encodeURIComponent(p.name)}" style="--tc:${tierColor(tier)}" title="${esc(`${p.name}, ${tier.name}`)}">${skinImg('face', p, '', 24)}` +
-          `<span class="nm">${esc(p.name)}</span><span class="hl ${tier.level === 'L' ? 'low' : 'high'}">${tier.level}T${group}</span></a></li>`;
+        return `<li><a class="tier-player${tier.retired ? ' retired' : ''}" href="#/player/${encodeURIComponent(p.name)}" style="--tc:${tierColor(tier)}" title="${esc(`${p.name}, ${tier.name}`)}">${skinImg('face', p, '', 24)}` +
+          `<span class="nm">${esc(p.name)}</span><span class="hl ${tier.retired ? 'ret' : tier.level === 'L' ? 'low' : 'high'}">${tier.retired ? 'R' : ''}${tier.level}T${group}</span></a></li>`;
       }).join('');
-      return `<section class="tier-col" style="--tc:var(--t${Math.min(group, 5)}-hi)" aria-label="Tier ${group}"${anim(gi + 1)}>
+      return `<section class="tier-col" style="--tc:var(--t${Math.min(group, 5)}-hi)" aria-label="Tier ${group}"${anim(gi + 2)}>
           <div class="tier-col-head"><span>Tier ${group}</span><span class="count">${list.length}</span></div>
           ${list.length ? `<ul>${entries}</ul>` : '<div class="empty">Nobody yet</div>'}
         </section>`;
     }).join('');
-    main.innerHTML = pageHead(mode.name, rankingMeta(inMode.length)) + `<div class="tier-cols" style="--n:${groups.length}">${columns}</div>`;
+    main.innerHTML = pageHead(mode.name, rankingMeta(inMode.length)) + filterBar() + `<div class="tier-cols" style="--n:${groups.length}">${columns}</div>`;
   }
 
   function renderHof() {
     tabs.hidden = true;
     const c = state.config.hallOfFame;
-    const used = state.categories.filter((cat) => state.hof.some((h) => h.category === cat.id));
-    if (state.hofFilter !== 'all' && !used.some((cat) => cat.id === state.hofFilter)) state.hofFilter = 'all';
-    const shown = state.hof.filter((h) => state.hofFilter === 'all' || h.category === state.hofFilter);
+    const roles = [];
+    for (const h of state.hof) {
+      const k = h.role.toLowerCase();
+      if (h.role && !roles.some((r) => r.id === k)) roles.push({ id: k, name: h.role, color: h.color });
+    }
+    if (state.hofFilter !== 'all' && !roles.some((r) => r.id === state.hofFilter)) state.hofFilter = 'all';
+    const shown = hofShown();
     const intro = c.intro ? `<p class="hof-intro"${anim(1)}>${esc(c.intro)}</p>` : '';
     const meta = `<span>${plural(state.hof.length, 'inductee')}</span>`;
 
@@ -663,9 +762,9 @@
       return;
     }
 
-    const filter = used.length > 1
+    const filter = roles.length > 1 && roles.length <= 8
       ? `<div class="tabs hof-tabs" role="tablist"${anim(2)}>` +
-        [{ id: 'all', name: 'All', n: state.hof.length }].concat(used.map((cat) => ({ id: cat.id, name: cat.name, n: state.hof.filter((h) => h.category === cat.id).length })))
+        [{ id: 'all', name: 'All', n: state.hof.length }].concat(roles.map((r) => ({ id: r.id, name: r.name, n: state.hof.filter((h) => h.role.toLowerCase() === r.id).length })))
           .map((t) => `<button class="tab${t.id === state.hofFilter ? ' active' : ''}" type="button" role="tab" aria-selected="${t.id === state.hofFilter}" data-hof-filter="${esc(t.id)}">${esc(t.name)} <span class="count">${t.n}</span></button>`).join('') +
         '<span class="tab-ink" aria-hidden="true"></span></div>'
       : '';
@@ -675,23 +774,27 @@
     if (bar) moveInk(bar, bar.querySelector('.tab.active'));
   }
 
+  function hofShown() {
+    return state.hof.filter((h) => state.hofFilter === 'all' || h.role.toLowerCase() === state.hofFilter);
+  }
+
   function hofContent(list) {
-    const byNewest = (a, b) => (b.year || 0) - (a.year || 0) || a.order - b.order;
+    const byNewest = (a, b) => b.startYear - a.startYear || a.order - b.order;
     let featured = list.filter((h) => h.featured).sort(byNewest);
     if (!featured.length) featured = list.slice().sort(byNewest).slice(0, 3);
     featured = featured.slice(0, 6);
 
     const plaques = featured.map((h, i) => {
-      const cat = categoryOf(h.category);
-      return `<a class="plaque" href="#/player/${encodeURIComponent(h.name)}" style="--cc:${cat.color}"${anim(i + 3)}>
+      const period = periodText(h);
+      return `<a class="plaque" href="#/player/${encodeURIComponent(h.name)}" style="--cc:${h.color}"${anim(i + 3)}>
           <div class="plaque-stage">
-            <span class="plaque-cat">${esc(cat.name)}</span>
-            ${h.year ? `<span class="plaque-year">${h.year}</span>` : ''}
-            ${skinImg('body', h, 'plaque-body-img', 240)}
+            ${h.role ? `<span class="plaque-cat">${esc(h.role)}</span>` : ''}
+            ${skinImg('body', h, 'plaque-body-img', 300)}
           </div>
           <div class="plaque-text">
             <h2 class="plaque-name">${esc(h.name)}</h2>
-            ${h.title ? `<p class="plaque-title">${esc(h.title)}</p>` : ''}
+            ${period ? `<p class="plaque-period">${esc(period)}</p>` : ''}
+            ${h.quote ? `<blockquote class="plaque-quote">${esc(h.quote)}</blockquote>` : ''}
             ${h.text ? `<p class="plaque-cite">${esc(h.text)}</p>` : ''}
           </div>
         </a>`;
@@ -699,7 +802,7 @@
 
     const years = new Map();
     for (const h of list.slice().sort(byNewest)) {
-      const key = h.year || 0;
+      const key = h.startYear || 0;
       if (!years.has(key)) years.set(key, []);
       years.get(key).push(h);
     }
@@ -707,15 +810,15 @@
     const ledger = [...years.entries()].map(([year, entries]) => `<section class="hof-year"${anim(n++)}>
         <div class="hof-year-num">${year || '–'}</div>
         <div>${entries.sort((a, b) => a.key.localeCompare(b.key)).map((h) => {
-          const cat = categoryOf(h.category);
-          return `<div class="hof-entry" style="--cc:${cat.color}">
+          const period = periodText(h);
+          return `<div class="hof-entry" style="--cc:${h.color}">
               ${skinImg('face', h, '', 40)}
               <div>
-                <div class="hof-entry-name"><a href="#/player/${encodeURIComponent(h.name)}">${esc(h.name)}</a></div>
-                ${h.title ? `<div class="hof-entry-title">${esc(h.title)}</div>` : ''}
+                <div class="hof-entry-name"><a href="#/player/${encodeURIComponent(h.name)}">${esc(h.name)}</a>${h.role ? ` <span class="hof-entry-role">${esc(h.role)}</span>` : ''}</div>
+                ${h.quote ? `<div class="hof-entry-quote">${esc(h.quote)}</div>` : ''}
                 ${h.text ? `<div class="hof-entry-cite">${esc(h.text)}</div>` : ''}
               </div>
-              <div class="hof-entry-cat">${esc(cat.name)}</div>
+              <div class="hof-entry-period">${esc(period)}</div>
             </div>`;
         }).join('')}</div>
       </section>`).join('');
@@ -828,9 +931,9 @@
       return;
     }
     const who = p || h;
-    const titleColor = p ? p.title.color : categoryOf(h.category).color;
+    const titleColor = p ? p.title.color : h.color;
     const facts = [];
-    if (p) facts.push(`<span class="p-title">${esc(p.title.name)}</span>`);
+    if (p && p.active) facts.push(`<span class="p-title">${esc(p.title.name)}</span>`);
     if (p && p.region) facts.push(regionText(p.region));
     facts.push(`<a href="https://namemc.com/profile/${encodeURIComponent(who.name)}" target="_blank" rel="noopener noreferrer">NameMC</a>`);
 
@@ -839,7 +942,8 @@
       const held = state.modes.filter((m) => p.tiers[m.id]).sort((a, b) => p.tiers[a.id].order - p.tiers[b.id].order);
       sections += `<div class="profile-section">
           <div class="section-label">Overall</div>
-          <div class="position"><span class="position-rank${medal(p.rank)}">#${p.rank}</span><span class="position-of">of ${state.ranked.length}</span><span class="position-points">${p.points}<small>${p.points === 1 ? 'point' : 'points'}</small></span></div>
+          <div class="position">${p.rank ? `<span class="position-rank${medal(p.rank)}">#${p.rank}</span><span class="position-of">of ${state.ranked.length}</span>` : '<span class="position-of">Retired from every mode</span>'}<span class="position-points">${p.points}<small>${p.points === 1 ? 'point' : 'points'}</small></span></div>
+          ${p.retiredPoints ? `<div class="position-note">Retired tiers would add ${plural(p.retiredPoints, 'point')}.</div>` : ''}
         </div>
         <div class="profile-section">
           <div class="section-label">Tiers</div>
@@ -849,10 +953,11 @@
       sections += '<div class="profile-section"><div class="profile-empty">Not on the tier list.</div></div>';
     }
     if (h) {
-      const cat = categoryOf(h.category);
-      sections += `<div class="profile-section" style="--cc:${cat.color}">
+      const period = periodText(h);
+      sections += `<div class="profile-section" style="--cc:${h.color}">
           <div class="section-label">Hall of Fame</div>
-          <div class="profile-hof"><b>${esc(cat.name)}</b><span>${h.year ? `Inducted ${h.year}` : 'Inducted'}${h.title ? `. ${esc(h.title)}` : ''}</span></div>
+          <div class="profile-hof"><b>${esc(h.role || 'Inductee')}</b>${period ? `<span>${esc(period)}</span>` : ''}</div>
+          ${h.quote ? `<blockquote class="profile-quote">${esc(h.quote)}</blockquote>` : ''}
         </div>`;
     }
 
@@ -871,6 +976,7 @@
     showModal(`<div class="modal-body">
         <h2>How points work</h2>
         <p>Each tier you hold is worth points. Your overall score is the total across all ${plural(state.modes.length, 'mode')}, so playing more modes well counts for more than one mode alone. On equal points, the better single tier goes first.</p>
+        <p>A retired tier, shown with an R (like RLT2), is a tier the player held before stepping away from that mode. It is worth no points, unless you tick <b>Count retired tiers</b> above the list.</p>
         <div class="info-grid">
           <div><div class="section-label">Tiers</div><table class="info-table">${tierRows}</table></div>
           <div><div class="section-label">Titles</div><table class="info-table">${titleRows}</table></div>
@@ -1015,7 +1121,7 @@
       });
       moveInk(bar, filter);
       const content = main.querySelector('.hof-content');
-      const shown = state.hof.filter((h) => state.hofFilter === 'all' || h.category === state.hofFilter);
+      const shown = hofShown();
       const redraw = () => {
         content.innerHTML = hofContent(shown);
         playEnter();
@@ -1055,6 +1161,21 @@
     }
   });
 
+  // The list filters: redraw the current list in place.
+  document.addEventListener('change', (e) => {
+    const field = e.target.closest('[data-filter]');
+    if (!field || !main.contains(field)) return;
+    if (field.dataset.filter === 'region') state.filter.region = field.value;
+    else state.filter.retired = field.checked;
+    try { localStorage.setItem('tiers.filter', JSON.stringify(state.filter)); } catch (err) { /* not kept */ }
+    const view = state.view;
+    if (view.page === 'overall' || view.page === 'mode') swap(view.page === 'mode' ? () => renderMode(state.modeById.get(view.mode)) : renderOverall, false);
+  });
+  try {
+    const saved = JSON.parse(localStorage.getItem('tiers.filter') || 'null');
+    if (saved) state.filter = { region: String(saved.region || ''), retired: saved.retired === true };
+  } catch (e) { /* nothing kept */ }
+
   window.addEventListener('hashchange', route);
 
   // What editor.js uses.
@@ -1062,12 +1183,16 @@
     get config() { return state.config; },
     get modes() { return state.modes; },
     get tiers() { return state.tiers; },
+    get retiredTiers() { return state.retiredTiers; },
     get categories() { return state.categories; },
+    get hofColors() { return state.hofColors; },
+    get poses() { return state.poses; },
+    get defaultPose() { return state.defaultPose; },
     get rawPlayers() { return state.rawPlayers; },
     get rawHof() { return state.rawHof; },
     get warnings() { return state.warnings.concat(state.hofWarnings); },
     get page() { return state.view.page; },
-    esc, icon, modeIcon, tierColor, parseTier, titleFor, categoryOf, skinImg, regionText, plural,
+    esc, icon, modeIcon, tierColor, parseTier, titleFor, categoryOf, periodText, skinImg, regionText, plural,
     toast, copyText, showModal, hideModal, normalizePlayers, normalizeHof, jsonMistake,
     /** After the editor saves, the public pages show the new data without a reload. */
     replacePlayers(raw) { applyPlayers(raw); },

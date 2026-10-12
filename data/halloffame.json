@@ -2,9 +2,9 @@
   "inductees": [
     {
       "name": "Soynte",
-      "category": "staff",
-      "year": 2026,
-      "title": "Founder",
+      "role": "Founder",
+      "color": "#e8b931",
+      "from": "2026",
       "text": "Started CombatAdvanced and built most of what runs on it.",
       "featured": true
     }

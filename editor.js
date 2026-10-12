@@ -137,43 +137,46 @@
 
   // ---------- halloffame.json ----------
 
+  const HOF_FIELDS = ['name', 'role', 'color', 'from', 'to', 'quote', 'text', 'pose', 'featured', 'category', 'title', 'year'];
+
   function fromRawHof(raw) {
     const list = Array.isArray(raw) ? raw : raw && Array.isArray(raw.inductees) ? raw.inductees : [];
-    const out = [];
-    const seen = new Set();
+    const rawByKey = new Map();
     for (const entry of list) {
-      const name = entry && typeof entry.name === 'string' ? entry.name.trim() : '';
-      if (!name || seen.has(name.toLowerCase())) continue;
-      seen.add(name.toLowerCase());
-      const extra = {};
-      for (const [key, value] of Object.entries(entry)) {
-        if (!['name', 'category', 'year', 'title', 'text', 'featured'].includes(key)) extra[key] = value;
-      }
-      const year = Number.isInteger(Number(entry.year)) && Number(entry.year) > 0 ? Number(entry.year) : null;
-      out.push({
-        id: ++seq,
-        name,
-        category: typeof entry.category === 'string' ? entry.category.trim().toLowerCase() : '',
-        year,
-        title: typeof entry.title === 'string' ? entry.title : '',
-        text: typeof entry.text === 'string' ? entry.text : '',
-        featured: entry.featured === true,
-        extra,
-        isNew: false
-      });
+      const name = entry && typeof entry.name === 'string' ? entry.name.trim().toLowerCase() : '';
+      if (name && !rawByKey.has(name)) rawByKey.set(name, entry);
     }
+    let norm = [];
+    try { norm = T.normalizeHof({ inductees: list }).inductees; } catch (e) { norm = []; }
+    const out = norm.map((n) => {
+      const entry = rawByKey.get(n.key) || {};
+      const extra = {};
+      for (const [key, value] of Object.entries(entry)) if (!HOF_FIELDS.includes(key)) extra[key] = value;
+      return {
+        id: ++seq, name: n.name, role: n.role, color: n.color, from: n.from, to: n.to,
+        quote: n.quote, text: n.text, pose: n.pose, featured: n.featured, extra, isNew: false
+      };
+    });
     return { list: out, top: topOf(raw, 'inductees') };
+  }
+
+  function startYear(h) {
+    const m = /(\d{4})/.exec(h.from || '');
+    return m ? Number(m[1]) : 0;
   }
 
   function buildHof(list, top) {
     const inductees = (list || ed.hof).slice()
-      .sort((a, b) => (b.year || 0) - (a.year || 0) || byName(a, b))
+      .sort((a, b) => startYear(b) - startYear(a) || byName(a, b))
       .map((h) => {
         const out = { name: h.name };
-        if (h.category) out.category = h.category;
-        if (h.year) out.year = h.year;
-        if (h.title.trim()) out.title = h.title.trim();
+        if (h.role.trim()) out.role = h.role.trim();
+        if (h.color) out.color = h.color;
+        if (h.from.trim()) out.from = h.from.trim();
+        if (h.to.trim()) out.to = h.to.trim();
+        if (h.quote.trim()) out.quote = h.quote.trim();
         if (h.text.trim()) out.text = h.text.trim();
+        if (h.pose && h.pose !== T.defaultPose) out.pose = h.pose;
         if (h.featured) out.featured = true;
         return Object.assign(out, h.extra);
       });
@@ -216,11 +219,12 @@
     return !!ed && (dirtyDoc('players') || dirtyDoc('hof'));
   }
 
+  /** Points from active tiers; retired ones count for nothing here. */
   function pointsOf(p) {
     let sum = 0;
     for (const id of Object.values(p.tiers)) {
       const tier = T.parseTier(id);
-      if (tier) sum += tier.points;
+      if (tier && !tier.retired) sum += tier.points;
     }
     return sum;
   }
@@ -451,8 +455,11 @@
   function metaHtml(p) {
     if (!Object.keys(p.tiers).length) return 'No tiers yet, so not on the site';
     const points = pointsOf(p);
+    const retired = Object.values(p.tiers).filter((id) => /^R/.test(id)).length;
     const title = T.titleFor(points);
-    return `<b>${T.esc(title.name)}</b> · ${T.plural(points, 'point')}`;
+    const note = retired ? ` · ${retired} retired` : '';
+    if (!points && retired) return `Only retired tiers${note}`;
+    return `<b>${T.esc(title.name)}</b> · ${T.plural(points, 'point')}${note}`;
   }
 
   function playerCard(p) {
@@ -464,8 +471,9 @@
     const modes = T.modes.map((m) => {
       const current = p.tiers[m.id] || '';
       const tier = current ? T.parseTier(current) : null;
-      const options = '<option value="">–</option>' +
-        T.tiers.map((t) => `<option value="${t.id}"${t.id === current ? ' selected' : ''}>${t.id}</option>`).join('');
+      const opt = (t) => `<option value="${t.id}"${t.id === current ? ' selected' : ''}>${t.id}</option>`;
+      const options = '<option value="">–</option>' + T.tiers.map(opt).join('') +
+        `<optgroup label="Retired (no points)">${T.retiredTiers.map(opt).join('')}</optgroup>`;
       return `<label class="ed-mode${tier ? ' has' : ''}"${tier ? ` style="--tc:${T.tierColor(tier)}"` : ''}>${T.modeIcon(m)}` +
         `<span class="ed-mode-name">${T.esc(m.name)}</span>` +
         `<select data-mode="${T.esc(m.id)}" aria-label="${T.esc(`${p.name}: ${m.name} tier`)}">${options}</select></label>`;
@@ -482,19 +490,26 @@
   }
 
   function hofCard(h) {
-    const cats = T.categories.slice();
-    if (h.category && !cats.some((c) => c.id === h.category)) cats.push(T.categoryOf(h.category));
-    const options = cats.map((c) => `<option value="${T.esc(c.id)}"${c.id === h.category ? ' selected' : ''}>${T.esc(c.name)}</option>`).join('');
-    return `<div class="ed-hof${h.isNew ? ' is-new' : ''}" data-hid="${h.id}">
+    const colors = T.hofColors.slice();
+    if (h.color && !colors.some((c) => c.color.toLowerCase() === h.color.toLowerCase())) colors.push({ name: h.color, color: h.color });
+    const colorOptions = colors.map((c) => `<option value="${T.esc(c.color)}"${c.color.toLowerCase() === (h.color || '').toLowerCase() ? ' selected' : ''}>${T.esc(c.name)}</option>`).join('');
+    const poses = T.poses.slice();
+    if (h.pose && !poses.some((x) => x.id === h.pose)) poses.push({ id: h.pose, name: h.pose });
+    const poseOptions = poses.map((x) => `<option value="${T.esc(x.id)}"${x.id === h.pose ? ' selected' : ''}>${T.esc(x.name)}</option>`).join('');
+    const label = (text, control, cls) => `<label class="mini${cls ? ' ' + cls : ''}">${text}${control}</label>`;
+    return `<div class="ed-hof${h.isNew ? ' is-new' : ''}" data-hid="${h.id}" style="--cc:${T.esc(h.color || '#e8b931')}">
         ${T.skinImg('face', skinOf(h), 'ed-face', 40)}
         <div>
-          <div class="ed-name">${T.esc(h.name)}</div>
+          <div class="ed-name"><span class="ed-swatch"></span>${T.esc(h.name)}</div>
           <div class="ed-hof-fields">
-            <input class="input" data-hfield="title" value="${T.esc(h.title)}" placeholder="Known for (one line)" maxlength="80" aria-label="${T.esc(h.name)}: known for">
-            <select class="select" data-hfield="category" aria-label="${T.esc(h.name)}: category">${options}</select>
-            <input class="input" data-hfield="year" type="number" min="2000" max="2100" value="${h.year || ''}" placeholder="Year" aria-label="${T.esc(h.name)}: year inducted">
-            <label class="check"><input type="checkbox" data-hfield="featured"${h.featured ? ' checked' : ''}> Featured</label>
-            <textarea class="textarea wide" data-hfield="text" rows="2" maxlength="400" placeholder="A sentence or two about them" aria-label="${T.esc(h.name)}: description">${T.esc(h.text)}</textarea>
+            ${label('What they were', `<input class="input" data-hfield="role" value="${T.esc(h.role)}" placeholder="e.g. Head Admin, First champion" maxlength="40">`, 'half')}
+            ${label('Colour', `<select class="select" data-hfield="color">${colorOptions}</select>`)}
+            ${label('Skin pose', `<select class="select" data-hfield="pose">${poseOptions}</select>`)}
+            ${label('From', `<input class="input" data-hfield="from" value="${T.esc(h.from)}" placeholder="e.g. 2025 or Mar 2025" maxlength="20">`)}
+            ${label('To', `<input class="input" data-hfield="to" value="${T.esc(h.to)}" placeholder="empty = present" maxlength="20">`)}
+            <label class="check half"><input type="checkbox" data-hfield="featured"${h.featured ? ' checked' : ''}> Featured (big card at the top)</label>
+            ${label('Quote', `<input class="input" data-hfield="quote" value="${T.esc(h.quote)}" placeholder="Something they said (without quote marks)" maxlength="200">`, 'wide')}
+            ${label('About', `<textarea class="textarea" data-hfield="text" rows="2" maxlength="400" placeholder="A sentence or two about them">${T.esc(h.text)}</textarea>`, 'wide')}
           </div>
         </div>
         <button class="icon-btn danger" type="button" data-ed="remove-hof" aria-label="Remove ${T.esc(h.name)}" title="Remove">${T.icon('trash')}</button>
@@ -685,10 +700,13 @@
       entry = {
         id: ++seq,
         name: known ? known.name : name,
-        category: T.categories.length ? T.categories[0].id : '',
-        year: new Date().getFullYear(),
-        title: '',
+        role: '',
+        color: T.hofColors.length ? T.hofColors[0].color : '#e8b931',
+        from: String(new Date().getFullYear()),
+        to: '',
+        quote: '',
         text: '',
+        pose: T.defaultPose,
         featured: false,
         extra: {},
         isNew: true
@@ -700,7 +718,7 @@
     updateCounts();
     updateDirty();
     flash(tiers ? `.editor-root .ed-player[data-id="${entry.id}"]` : `.editor-root .ed-hof[data-hid="${entry.id}"]`);
-    T.toast(tiers ? `Added ${entry.name}. Now pick their tiers.` : `Added ${entry.name}. Fill in what they are known for.`);
+    T.toast(tiers ? `Added ${entry.name}. Now pick their tiers.` : `Added ${entry.name}. Write what they were.`);
   }
 
   function remove(list, entry, what) {
@@ -854,10 +872,8 @@
     if (!h) return;
     const field = e.target.dataset.hfield;
     if (field === 'featured') h.featured = e.target.checked;
-    else if (field === 'year') {
-      const n = parseInt(e.target.value, 10);
-      h.year = Number.isInteger(n) && n > 0 ? n : null;
-    } else h[field] = e.target.value;
+    else h[field] = e.target.value;
+    if (field === 'color') e.target.closest('.ed-hof').style.setProperty('--cc', h.color);
     updateDirty();
   }
 
@@ -886,7 +902,7 @@
 
   document.addEventListener('input', (e) => {
     if (!ed) return;
-    if (e.target.matches('.editor-root [data-hfield="title"], .editor-root [data-hfield="text"], .editor-root [data-hfield="year"]')) {
+    if (e.target.matches('.editor-root input[data-hfield]:not([type="checkbox"]), .editor-root textarea[data-hfield]')) {
       onHofField(e);
       return;
     }

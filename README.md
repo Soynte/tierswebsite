@@ -52,9 +52,16 @@ linked from the site).
 - Type a Minecraft name and press **Add player**.
 - Pick a tier in each mode. Leave a mode on **—** for no tier.
 - Optionally pick a region. The trash button removes a player.
-- The **Hall of Fame** tab works the same way: type a name, press **Add**,
-  then fill in what they are known for, a category, the year and a sentence
-  or two. Tick **Featured** to give them a big card at the top of the page.
+- A tier with an **R** in front (RHT1 to RLT5, under "Retired" in the
+  menu) is a **retired tier**: it shows faded, as "RLT2" and so on, and
+  gives no points. Visitors can tick **Count retired tiers** above the list
+  to count them anyway, and pick a **region** to see only that region.
+- The **Hall of Fame** tab works the same way: type a name and press
+  **Add**. Then write **what they were** (anything, like "Head Admin"), pick
+  a **colour**, the **skin pose** for their 3D picture, the time period
+  (**From** and **To**, like "2025" and "2026", or "Mar 2025"; leave To
+  empty for "present"), an optional **quote** and a sentence or two
+  **about** them. Tick **Featured** to give them a big card at the top.
 - Press **Save**. It saves both lists at once.
 
 The first time you save, it asks for a **GitHub token**: a key that lets the
@@ -116,18 +123,25 @@ it is on.
   "inductees": [
     {
       "name": "Soynte",
-      "category": "staff",
-      "year": 2026,
-      "title": "Founder",
-      "text": "Started CombatAdvanced and built most of what runs on it.",
+      "role": "Founder",
+      "color": "#e8b931",
+      "from": "2025",
+      "to": "",
+      "quote": "Started as a duels plugin, ended up a whole server.",
+      "text": "Built most of what runs on CombatAdvanced.",
+      "pose": "crossed",
       "featured": true
     }
   ]
 }
 ```
 
-`category` is one of the ids under `hallOfFame` in `config.json`. Featured
-inductees get the big cards; with none featured, the newest three do.
+`pose` picks the 3D full-body render (Starlight Skins); the choices are
+under `hallOfFame.poses` in `config.json`. Featured inductees get the big
+cards; with none featured, the newest three do. The list below the cards is
+grouped by the first year in `from`.
+
+In players.json a retired tier is written with an R: `"classic": "RLT2"`.
 
 ## Changing the site (`data/config.json`)
 
@@ -139,8 +153,8 @@ inductees get the big cards; with none featured, the newest three do.
 | `points` | what each tier is worth, **best tier first**. Add `"MT1": 50` and so on for mid tiers. |
 | `titles` | the title for each points total, with its colour |
 | `regions` | the region codes and their colours |
-| `hallOfFame` | the line under the Hall of Fame heading, and its categories with their colours |
-| `skins` | where skins come from (`{name}` is the player's name); `body` is the full-body picture on Hall of Fame cards |
+| `hallOfFame` | the line under the Hall of Fame heading, the colour choices, and the skin poses |
+| `skins` | where skins come from (`{name}` is the player's name); `body` is the 3D full-body picture on Hall of Fame cards (`{pose}` is the pose), with `bodyBackup` and `bodyBasic` if that service is down |
 | `github` | where the editor saves. Leave owner and repo empty on `github.io`, since it works them out from the address; `dir` is the data folder. |
 
 Built-in mode icons: `classic`, `sword`, `trident`, `pot`, `uhc`, `shield`,
