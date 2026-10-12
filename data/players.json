@@ -1,20 +1,171 @@
 {
   "players": [
     {
-      "name": "CombatSnapshot",
+      "name": "Asimoa",
+      "tiers": {
+        "classic": "HT3",
+        "sword": "LT2",
+        "trident": "LT3",
+        "pot": "LT2",
+        "uhc": "HT4",
+        "shield": "HT4",
+        "smp": "HT4"
+      }
+    },
+    {
+      "name": "Aterzos",
+      "tiers": {
+        "classic": "LT2",
+        "sword": "HT3",
+        "trident": "HT3",
+        "pot": "LT3",
+        "uhc": "HT3",
+        "shield": "LT3",
+        "smp": "HT3"
+      }
+    },
+    {
+      "name": "DeeTeaYasuo",
+      "tiers": {
+        "classic": "HT2",
+        "sword": "HT3",
+        "trident": "HT2",
+        "pot": "LT3",
+        "uhc": "LT3",
+        "shield": "HT4",
+        "smp": "HT4"
+      }
+    },
+    {
+      "name": "Detonator320",
+      "tiers": {
+        "classic": "HT3",
+        "sword": "LT3",
+        "trident": "LT3",
+        "pot": "LT3",
+        "uhc": "HT5",
+        "shield": "LT3",
+        "smp": "LT4"
+      }
+    },
+    {
+      "name": "Kraney",
+      "tiers": {
+        "classic": "HT3",
+        "sword": "LT2",
+        "trident": "HT3",
+        "pot": "HT4",
+        "uhc": "HT4",
+        "shield": "HT4",
+        "smp": "HT4"
+      }
+    },
+    {
+      "name": "NotCoded",
+      "tiers": {
+        "classic": "HT3",
+        "sword": "LT3",
+        "trident": "LT3",
+        "pot": "HT4",
+        "uhc": "LT4",
+        "shield": "LT4",
+        "smp": "HT5"
+      }
+    },
+    {
+      "name": "NotInfinityy",
       "tiers": {
         "classic": "LT3",
         "sword": "HT4",
-        "pot": "LT4"
+        "trident": "HT4",
+        "pot": "HT4",
+        "uhc": "LT4",
+        "shield": "LT4",
+        "smp": "LT3"
+      }
+    },
+    {
+      "name": "omnipathic",
+      "tiers": {
+        "classic": "HT3",
+        "sword": "HT3",
+        "trident": "LT3",
+        "pot": "HT3",
+        "uhc": "HT4",
+        "shield": "HT4",
+        "smp": "HT4"
+      }
+    },
+    {
+      "name": "Ra1gn",
+      "tiers": {
+        "classic": "HT1",
+        "sword": "HT2",
+        "trident": "LT2",
+        "pot": "HT4",
+        "uhc": "LT2",
+        "shield": "HT1",
+        "smp": "LT4"
       }
     },
     {
       "name": "Soynte",
       "tiers": {
-        "classic": "HT2",
-        "sword": "LT2",
-        "uhc": "HT3",
+        "classic": "LT2",
+        "sword": "HT3",
+        "trident": "HT3",
+        "pot": "LT3",
+        "uhc": "LT3",
+        "shield": "LT3",
+        "smp": "HT4"
+      }
+    },
+    {
+      "name": "SpendingSaucer",
+      "tiers": {
+        "classic": "LT1",
+        "sword": "HT3",
+        "trident": "LT2",
+        "pot": "HT4",
+        "uhc": "HT4",
+        "shield": "HT3",
         "smp": "LT3"
+      }
+    },
+    {
+      "name": "SurgeFlame",
+      "tiers": {
+        "classic": "HT3",
+        "sword": "HT3",
+        "trident": "LT3",
+        "pot": "LT2",
+        "uhc": "LT4",
+        "shield": "LT4",
+        "smp": "LT3"
+      }
+    },
+    {
+      "name": "TGT__",
+      "tiers": {
+        "classic": "HT2",
+        "sword": "HT3",
+        "trident": "LT2",
+        "pot": "HT3",
+        "uhc": "LT3",
+        "shield": "LT3",
+        "smp": "LT3"
+      }
+    },
+    {
+      "name": "UniversalCake",
+      "tiers": {
+        "classic": "LT2",
+        "sword": "HT3",
+        "trident": "HT3",
+        "pot": "LT3",
+        "uhc": "LT2",
+        "shield": "LT2",
+        "smp": "HT3"
       }
     }
   ]
