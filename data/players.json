@@ -20,7 +20,7 @@
         "classic": "LT2",
         "sword": "HT3",
         "trident": "HT3",
-        "pot": "LT3",
+        "pot": "HT3",
         "uhc": "LT2",
         "shield": "LT3",
         "smp": "HT3"
@@ -60,7 +60,7 @@
         "sword": "HT3",
         "trident": "HT1",
         "pot": "LT3",
-        "uhc": "LT3",
+        "uhc": "HT3",
         "shield": "HT4",
         "smp": "HT4"
       }
@@ -176,7 +176,7 @@
         "classic": "HT3",
         "sword": "HT3",
         "trident": "LT3",
-        "pot": "HT3",
+        "pot": "LT2",
         "uhc": "HT4",
         "shield": "HT4",
         "smp": "HT4"
@@ -241,7 +241,7 @@
         "classic": "LT2",
         "sword": "LT2",
         "trident": "LT2",
-        "pot": "LT3",
+        "pot": "HT3",
         "uhc": "LT3",
         "shield": "LT3",
         "smp": "LT3"
@@ -294,7 +294,7 @@
         "sword": "LT2",
         "trident": "HT2",
         "pot": "HT3",
-        "uhc": "LT3",
+        "uhc": "HT3",
         "shield": "LT3",
         "smp": "LT3"
       }
@@ -316,7 +316,7 @@
       "name": "UniversalCake",
       "region": "NA",
       "tiers": {
-        "classic": "LT2",
+        "classic": "HT2",
         "sword": "HT3",
         "trident": "HT3",
         "pot": "LT3",
