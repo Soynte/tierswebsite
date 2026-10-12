@@ -133,6 +133,18 @@
       }
     },
     {
+      "name": "ProfX33",
+      "tiers": {
+        "classic": "HT4",
+        "sword": "LT3",
+        "trident": "LT3",
+        "pot": "HT4",
+        "uhc": "HT3",
+        "shield": "LT2",
+        "smp": "HT2"
+      }
+    },
+    {
       "name": "Ra1gn",
       "tiers": {
         "classic": "HT1",
