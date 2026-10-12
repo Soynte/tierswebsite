@@ -4,340 +4,132 @@
     {
       "name": "Asimoa",
       "region": "EU",
-      "tiers": {
-        "classic": "HT3",
-        "sword": "HT1",
-        "trident": "LT3",
-        "pot": "HT1",
-        "uhc": "HT4",
-        "shield": "HT4",
-        "smp": "HT4"
-      }
+      "tiers": {}
     },
     {
       "name": "Aterzos",
       "region": "NA",
-      "tiers": {
-        "classic": "LT2",
-        "sword": "HT3",
-        "trident": "HT3",
-        "pot": "HT3",
-        "uhc": "LT2",
-        "shield": "LT3",
-        "smp": "HT3"
-      }
+      "tiers": {}
     },
     {
       "name": "Boggas",
       "region": "EU",
-      "tiers": {
-        "classic": "LT1",
-        "sword": "LT1",
-        "trident": "LT2",
-        "pot": "HT3",
-        "uhc": "LT1",
-        "shield": "HT3",
-        "smp": "HT2"
-      }
+      "tiers": {}
     },
     {
       "name": "decobra",
       "region": "EU",
-      "tiers": {
-        "classic": "HT2",
-        "sword": "HT2",
-        "trident": "LT3",
-        "pot": "HT4",
-        "uhc": "LT3",
-        "shield": "LT4",
-        "smp": "HT5"
-      }
+      "tiers": {}
     },
     {
       "name": "DeeTeaYasuo",
       "region": "EU",
-      "tiers": {
-        "classic": "HT2",
-        "sword": "HT3",
-        "trident": "HT1",
-        "pot": "HT3",
-        "uhc": "LT2",
-        "shield": "LT3",
-        "smp": "LT3"
-      }
+      "tiers": {}
     },
     {
       "name": "Detonator320",
       "region": "NA",
-      "tiers": {
-        "classic": "HT3",
-        "sword": "LT3",
-        "trident": "LT3",
-        "pot": "LT3",
-        "uhc": "HT5",
-        "shield": "LT3",
-        "smp": "LT4"
-      }
+      "tiers": {}
     },
     {
       "name": "Fandush",
       "region": "EU",
-      "tiers": {
-        "classic": "LT2",
-        "sword": "LT3",
-        "trident": "HT3",
-        "pot": "HT4",
-        "uhc": "HT4",
-        "shield": "HT4",
-        "smp": "LT5"
-      }
+      "tiers": {}
     },
     {
       "name": "freezingViolet",
       "region": "EU",
-      "tiers": {
-        "classic": "HT2",
-        "sword": "HT3",
-        "trident": "HT3",
-        "pot": "HT4",
-        "uhc": "HT3",
-        "shield": "LT3",
-        "smp": "HT4"
-      }
+      "tiers": {}
     },
     {
       "name": "Kraney",
       "region": "EU",
-      "tiers": {
-        "classic": "HT3",
-        "sword": "HT2",
-        "trident": "HT3",
-        "pot": "LT2",
-        "uhc": "HT4",
-        "shield": "HT4",
-        "smp": "HT4"
-      }
+      "tiers": {}
     },
     {
       "name": "Martin4206969",
       "region": "EU",
-      "tiers": {
-        "classic": "HT3",
-        "sword": "HT3",
-        "trident": "HT3",
-        "pot": "HT3",
-        "uhc": "HT3",
-        "shield": "HT3",
-        "smp": "HT3"
-      }
+      "tiers": {}
     },
     {
       "name": "NormalX",
       "region": "NA",
-      "tiers": {
-        "classic": "HT3",
-        "sword": "LT2",
-        "trident": "HT3",
-        "pot": "HT4",
-        "uhc": "HT4",
-        "shield": "HT4",
-        "smp": "HT4"
-      }
+      "tiers": {}
     },
     {
       "name": "NotCoded",
       "region": "EU",
-      "tiers": {
-        "classic": "HT3",
-        "sword": "LT3",
-        "trident": "LT3",
-        "pot": "HT4",
-        "uhc": "LT4",
-        "shield": "LT4",
-        "smp": "HT5"
-      }
+      "tiers": {}
     },
     {
       "name": "NotInfinityy",
       "region": "EU",
-      "tiers": {
-        "classic": "LT3",
-        "sword": "HT4",
-        "trident": "HT4",
-        "pot": "HT4",
-        "uhc": "LT4",
-        "shield": "LT4",
-        "smp": "LT3"
-      }
+      "tiers": {}
     },
     {
       "name": "omnipathic",
       "region": "EU",
-      "tiers": {
-        "classic": "HT3",
-        "sword": "HT3",
-        "trident": "LT3",
-        "pot": "LT2",
-        "uhc": "HT4",
-        "shield": "HT4",
-        "smp": "HT4"
-      }
+      "tiers": {}
     },
     {
       "name": "ProfX33",
       "region": "EU",
-      "tiers": {
-        "classic": "HT4",
-        "sword": "LT3",
-        "trident": "LT3",
-        "pot": "HT4",
-        "uhc": "HT3",
-        "shield": "LT2",
-        "smp": "HT2"
-      }
+      "tiers": {}
     },
     {
       "name": "Ra1gn",
       "region": "NA",
-      "tiers": {
-        "classic": "HT1",
-        "sword": "HT2",
-        "trident": "LT2",
-        "pot": "HT3",
-        "uhc": "LT2",
-        "shield": "HT1",
-        "smp": "LT1"
-      }
+      "tiers": {}
     },
     {
       "name": "Rafunny",
       "region": "EU",
-      "tiers": {
-        "classic": "RHT1",
-        "sword": "HT2",
-        "trident": "HT2",
-        "pot": "LT2",
-        "uhc": "HT1",
-        "shield": "LT2",
-        "smp": "HT2"
-      }
+      "tiers": {}
     },
     {
       "name": "shrobbyy",
       "region": "EU",
-      "tiers": {
-        "classic": "LT3",
-        "sword": "LT3",
-        "trident": "LT3",
-        "pot": "HT3",
-        "uhc": "LT3",
-        "shield": "LT4",
-        "smp": "LT4"
-      }
+      "tiers": {}
     },
     {
       "name": "Soynte",
       "region": "EU",
-      "tiers": {
-        "classic": "HT2",
-        "sword": "HT2",
-        "trident": "HT2",
-        "pot": "HT2",
-        "uhc": "HT2",
-        "shield": "HT2",
-        "smp": "HT2"
-      }
+      "tiers": {}
     },
     {
       "name": "SpendingSaucer",
       "region": "NA",
-      "tiers": {
-        "classic": "LT1",
-        "sword": "LT2",
-        "trident": "LT1",
-        "pot": "HT3",
-        "uhc": "LT3",
-        "shield": "LT2",
-        "smp": "HT3"
-      }
+      "tiers": {}
     },
     {
       "name": "SurgeFlame",
       "region": "NA",
-      "tiers": {
-        "classic": "HT3",
-        "sword": "HT3",
-        "trident": "LT3",
-        "pot": "LT1",
-        "uhc": "LT4",
-        "shield": "LT4",
-        "smp": "LT3"
-      }
+      "tiers": {}
     },
     {
       "name": "Teramaster",
       "region": "EU",
-      "tiers": {
-        "classic": "HT4",
-        "sword": "LT2",
-        "trident": "LT5",
-        "pot": "LT4",
-        "uhc": "LT4",
-        "shield": "HT4",
-        "smp": "LT4"
-      }
+      "tiers": {}
     },
     {
       "name": "TGT__",
       "region": "EU",
-      "tiers": {
-        "classic": "HT2",
-        "sword": "HT2",
-        "trident": "LT1",
-        "pot": "LT2",
-        "uhc": "HT3",
-        "shield": "HT3",
-        "smp": "HT3"
-      }
+      "tiers": {}
     },
     {
       "name": "Tiktube",
       "region": "EU",
-      "tiers": {
-        "classic": "HT3",
-        "sword": "LT3",
-        "trident": "LT3",
-        "pot": "LT4",
-        "uhc": "LT4",
-        "shield": "LT4",
-        "smp": "LT4"
-      }
+      "tiers": {}
     },
     {
       "name": "UniversalCake",
       "region": "NA",
-      "tiers": {
-        "classic": "HT2",
-        "sword": "HT3",
-        "trident": "HT3",
-        "pot": "HT3",
-        "uhc": "HT2",
-        "shield": "HT2",
-        "smp": "HT1"
-      }
+      "tiers": {}
     },
     {
       "name": "ZB3AM",
       "region": "ME",
-      "tiers": {
-        "classic": "HT4",
-        "sword": "LT4",
-        "trident": "LT4",
-        "pot": "HT5",
-        "uhc": "LT5",
-        "shield": "LT5",
-        "smp": "LT4"
-      }
+      "tiers": {}
     }
   ]
 }
