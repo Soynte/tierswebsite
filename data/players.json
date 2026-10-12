@@ -181,6 +181,18 @@
       }
     },
     {
+      "name": "shrobbyy",
+      "tiers": {
+        "classic": "LT3",
+        "sword": "LT3",
+        "trident": "LT3",
+        "pot": "HT3",
+        "uhc": "LT3",
+        "shield": "LT4",
+        "smp": "LT4"
+      }
+    },
+    {
       "name": "Soynte",
       "tiers": {
         "classic": "LT2",
