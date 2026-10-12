@@ -214,8 +214,8 @@
       "tiers": {
         "classic": "HT1",
         "sword": "HT2",
-        "trident": "LT2",
-        "pot": "HT3",
+        "trident": "HT2",
+        "pot": "LT2",
         "uhc": "HT1",
         "shield": "LT2",
         "smp": "LT2"
