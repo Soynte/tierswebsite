@@ -252,11 +252,11 @@
       "region": "NA",
       "tiers": {
         "classic": "LT1",
-        "sword": "HT3",
+        "sword": "LT2",
         "trident": "LT1",
         "pot": "HT3",
         "uhc": "LT3",
-        "shield": "HT3",
+        "shield": "LT2",
         "smp": "HT3"
       }
     },
