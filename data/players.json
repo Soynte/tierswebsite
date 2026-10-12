@@ -239,8 +239,8 @@
       "region": "EU",
       "tiers": {
         "classic": "HT2",
-        "sword": "LT2",
-        "trident": "LT2",
+        "sword": "HT2",
+        "trident": "HT2",
         "pot": "LT2",
         "uhc": "LT2",
         "shield": "LT2",
