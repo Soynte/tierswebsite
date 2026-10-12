@@ -6,7 +6,7 @@
         "classic": "HT3",
         "sword": "LT2",
         "trident": "LT3",
-        "pot": "LT2",
+        "pot": "LT1",
         "uhc": "HT4",
         "shield": "HT4",
         "smp": "HT4"
@@ -102,7 +102,7 @@
         "classic": "HT3",
         "sword": "HT2",
         "trident": "HT3",
-        "pot": "HT4",
+        "pot": "LT2",
         "uhc": "HT4",
         "shield": "HT4",
         "smp": "HT4"
@@ -246,7 +246,7 @@
         "classic": "HT3",
         "sword": "HT3",
         "trident": "LT3",
-        "pot": "LT2",
+        "pot": "HT2",
         "uhc": "LT4",
         "shield": "LT4",
         "smp": "LT3"
