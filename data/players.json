@@ -4,132 +4,195 @@
     {
       "name": "Asimoa",
       "region": "EU",
-      "tiers": {}
+      "tiers": {
+        "classic": "HT3"
+      }
     },
     {
       "name": "Aterzos",
       "region": "NA",
-      "tiers": {}
+      "tiers": {
+        "classic": "LT2"
+      }
     },
     {
       "name": "Boggas",
       "region": "EU",
-      "tiers": {}
+      "tiers": {
+        "classic": "RLT1",
+        "uhc": "HT1"
+      }
     },
     {
       "name": "decobra",
       "region": "EU",
-      "tiers": {}
+      "tiers": {
+        "classic": "RLT2",
+        "uhc": "HT3"
+      }
     },
     {
       "name": "DeeTeaYasuo",
       "region": "EU",
-      "tiers": {}
+      "tiers": {
+        "classic": "RHT2",
+        "uhc": "LT1"
+      }
     },
     {
       "name": "Detonator320",
       "region": "NA",
-      "tiers": {}
+      "tiers": {
+        "classic": "HT3",
+        "uhc": "LT4"
+      }
     },
     {
       "name": "Fandush",
       "region": "EU",
-      "tiers": {}
+      "tiers": {
+        "classic": "RLT2"
+      }
     },
     {
       "name": "freezingViolet",
       "region": "EU",
-      "tiers": {}
+      "tiers": {
+        "classic": "RHT1"
+      }
     },
     {
       "name": "Kraney",
       "region": "EU",
-      "tiers": {}
+      "tiers": {
+        "uhc": "LT4"
+      }
     },
     {
       "name": "Martin4206969",
       "region": "EU",
-      "tiers": {}
+      "tiers": {
+        "classic": "HT3"
+      }
     },
     {
       "name": "NormalX",
       "region": "NA",
-      "tiers": {}
+      "tiers": {
+        "classic": "HT3"
+      }
     },
     {
       "name": "NotCoded",
       "region": "EU",
-      "tiers": {}
+      "tiers": {
+        "classic": "HT3",
+        "uhc": "LT3"
+      }
     },
     {
       "name": "NotInfinityy",
       "region": "EU",
-      "tiers": {}
+      "tiers": {
+        "classic": "LT3"
+      }
     },
     {
       "name": "omnipathic",
       "region": "EU",
-      "tiers": {}
+      "tiers": {
+        "classic": "HT3"
+      }
     },
     {
       "name": "ProfX33",
       "region": "EU",
-      "tiers": {}
+      "tiers": {
+        "classic": "RHT2",
+        "uhc": "HT4"
+      }
     },
     {
       "name": "Ra1gn",
       "region": "NA",
-      "tiers": {}
+      "tiers": {
+        "classic": "RHT1",
+        "uhc": "HT1"
+      }
     },
     {
       "name": "Rafunny",
       "region": "EU",
-      "tiers": {}
+      "tiers": {
+        "classic": "RHT1"
+      }
     },
     {
       "name": "shrobbyy",
       "region": "EU",
-      "tiers": {}
+      "tiers": {
+        "classic": "LT3"
+      }
     },
     {
       "name": "Soynte",
       "region": "EU",
-      "tiers": {}
+      "tiers": {
+        "classic": "RLT2",
+        "uhc": "HT3"
+      }
     },
     {
       "name": "SpendingSaucer",
       "region": "NA",
-      "tiers": {}
+      "tiers": {
+        "classic": "RLT1",
+        "uhc": "RLT2"
+      }
     },
     {
       "name": "SurgeFlame",
       "region": "NA",
-      "tiers": {}
+      "tiers": {
+        "classic": "LT3"
+      }
     },
     {
       "name": "Teramaster",
       "region": "EU",
-      "tiers": {}
+      "tiers": {
+        "classic": "HT4"
+      }
     },
     {
       "name": "TGT__",
       "region": "EU",
-      "tiers": {}
+      "tiers": {
+        "classic": "RHT2",
+        "uhc": "HT3"
+      }
     },
     {
       "name": "Tiktube",
       "region": "EU",
-      "tiers": {}
+      "tiers": {
+        "classic": "HT3"
+      }
     },
     {
       "name": "UniversalCake",
       "region": "NA",
-      "tiers": {}
+      "tiers": {
+        "classic": "RHT2",
+        "uhc": "HT2"
+      }
     },
     {
       "name": "ZB3AM",
       "region": "ME",
-      "tiers": {}
+      "tiers": {
+        "classic": "HT4"
+      }
     }
   ]
 }
