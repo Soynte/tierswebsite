@@ -1,8 +1,9 @@
 # CombatAdvanced Tiers
 
 The server's tier list website, in the style of MCTiers. It has an overall
-ranking by points, a tier list for every mode, player profiles, a search box,
-and an editor where you add any player and set their tiers.
+ranking by points, a tier list for every mode, a Hall of Fame, player
+profiles, a search box, and an editor where you add any player, set their
+tiers and induct people into the Hall of Fame.
 
 It is a plain static site: no server, no database, no build step. GitHub
 Pages hosts it for free.
@@ -14,8 +15,9 @@ Pages hosts it for free.
 | `index.html`, `styles.css`, `app.js` | the site itself |
 | `editor.js` | the editor, at `#/edit` |
 | `data/players.json` | **the players and their tiers** (the editor writes this) |
+| `data/halloffame.json` | **the Hall of Fame** (the editor writes this too) |
 | `data/config.json` | the site's settings: modes, points, titles, region colours, server IP, Discord link |
-| `fonts/` | the Inter font (SIL Open Font License, `fonts/OFL.txt`) |
+| `fonts/` | the Barlow and Barlow Condensed fonts (SIL Open Font License, `fonts/OFL.txt`) |
 | `favicon.svg` | the tab icon |
 
 ## Put it online with GitHub Pages (free)
@@ -50,7 +52,10 @@ linked from the site).
 - Type a Minecraft name and press **Add player**.
 - Pick a tier in each mode. Leave a mode on **—** for no tier.
 - Optionally pick a region. The trash button removes a player.
-- Press **Save**.
+- The **Hall of Fame** tab works the same way: type a name, press **Add**,
+  then fill in what they are known for, a category, the year and a sentence
+  or two. Tick **Featured** to give them a big card at the top of the page.
+- Press **Save**. It saves both lists at once.
 
 The first time you save, it asks for a **GitHub token**: a key that lets the
 editor change this one repository. Make it once:
@@ -58,7 +63,9 @@ editor change this one repository. Make it once:
 1. Open <https://github.com/settings/personal-access-tokens/new>. That is
    **Settings → Developer settings → Personal access tokens → Fine-grained
    tokens → Generate new token**.
-2. Give it a name, like *tier editor*, and an expiry date.
+2. Give it a name, like *tier editor*, and pick an **Expiration** from the
+   list, such as 90 days. If you choose *Custom*, you must also pick a date,
+   or GitHub silently refuses to make the token.
 3. **Repository access:** *Only select repositories*, and pick `tiers`.
 4. **Permissions:** add **Contents** and set it to **Read and write**.
 5. Press **Generate token** and copy it. It starts with `github_pat_`.
@@ -102,6 +109,26 @@ Open `data/players.json` on GitHub, press the pencil icon, edit it, and press
 If the file has a mistake, such as a missing comma, the site says which line
 it is on.
 
+`data/halloffame.json` looks like this:
+
+```json
+{
+  "inductees": [
+    {
+      "name": "Soynte",
+      "category": "staff",
+      "year": 2026,
+      "title": "Founder",
+      "text": "Started CombatAdvanced and built most of what runs on it.",
+      "featured": true
+    }
+  ]
+}
+```
+
+`category` is one of the ids under `hallOfFame` in `config.json`. Featured
+inductees get the big cards; with none featured, the newest three do.
+
 ## Changing the site (`data/config.json`)
 
 | Key | What it does |
@@ -112,8 +139,9 @@ it is on.
 | `points` | what each tier is worth, **best tier first**. Add `"MT1": 50` and so on for mid tiers. |
 | `titles` | the title for each points total, with its colour |
 | `regions` | the region codes and their colours |
-| `skins` | where skins come from (`{name}` is the player's name) |
-| `github` | where the editor saves. Leave it empty on `github.io`, since it works it out from the address. |
+| `hallOfFame` | the line under the Hall of Fame heading, and its categories with their colours |
+| `skins` | where skins come from (`{name}` is the player's name); `body` is the full-body picture on Hall of Fame cards |
+| `github` | where the editor saves. Leave owner and repo empty on `github.io`, since it works them out from the address; `dir` is the data folder. |
 
 Built-in mode icons: `classic`, `sword`, `trident`, `pot`, `uhc`, `shield`,
 `smp`. For any other mode, upload a small picture to the repository and set

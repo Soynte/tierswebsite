@@ -1,15 +1,17 @@
 /* CombatAdvanced Tiers: the public pages.
  *
- * Everything shown comes from two files next to this one:
- *   data/config.json   the site's name, the game modes, the points for each
- *                      tier, titles, region colours and where skins come from
- *   data/players.json  every player and their tier in each mode
+ * Everything shown comes from three files next to this one:
+ *   data/config.json      the site's name, the modes, points, titles, regions,
+ *                         Hall of Fame categories and where skins come from
+ *   data/players.json     every player and their tier in each mode
+ *   data/halloffame.json  the Hall of Fame inductees (optional)
  *
- * The site is one page with hash addresses, so any static host serves it
- * (GitHub Pages included) and a refresh never 404s:
+ * One page with hash addresses, so any static host serves it and a refresh
+ * never 404s:
  *   #/rankings/overall   the overall ranking (the default)
- *   #/rankings/<mode>    one mode's tier list, Tier 1 to Tier 5
- *   #/player/<name>      a player's profile, over the list behind it
+ *   #/rankings/<mode>    one mode's tier list
+ *   #/hall-of-fame       the Hall of Fame
+ *   #/player/<name>      a player's profile, over whatever page is behind it
  *   #/edit               the editor, in editor.js
  */
 (function () {
@@ -20,20 +22,30 @@
     serverName: '',
     serverIp: '',
     discord: '',
-    github: { owner: '', repo: '', branch: 'main', path: 'data/players.json' },
+    github: { owner: '', repo: '', branch: 'main', dir: 'data' },
     modes: [],
     points: { HT1: 60, LT1: 45, HT2: 30, LT2: 20, HT3: 10, LT3: 6, HT4: 4, LT4: 3, HT5: 2, LT5: 1 },
     titles: [
-      { name: 'Combat Grandmaster', minPoints: 400, color: '#fbbf24' },
-      { name: 'Combat Master', minPoints: 250, color: '#c084fc' },
-      { name: 'Combat Ace', minPoints: 100, color: '#f87171' },
-      { name: 'Combat Specialist', minPoints: 50, color: '#38bdf8' },
-      { name: 'Combat Cadet', minPoints: 20, color: '#34d399' },
-      { name: 'Combat Novice', minPoints: 10, color: '#a3b1c6' },
-      { name: 'Rookie', minPoints: 0, color: '#7b8496' }
+      { name: 'Combat Grandmaster', minPoints: 400, color: '#f4c542' },
+      { name: 'Combat Master', minPoints: 250, color: '#c49bf2' },
+      { name: 'Combat Ace', minPoints: 100, color: '#ef7d7d' },
+      { name: 'Combat Specialist', minPoints: 50, color: '#5fb3ea' },
+      { name: 'Combat Cadet', minPoints: 20, color: '#5cc99a' },
+      { name: 'Combat Novice', minPoints: 10, color: '#a3acb9' },
+      { name: 'Rookie', minPoints: 0, color: '#7b818c' }
     ],
     regions: {},
+    hallOfFame: {
+      intro: '',
+      categories: [
+        { id: 'champion', name: 'Champion', color: '#e8b931' },
+        { id: 'legend', name: 'Legend', color: '#3b82f6' },
+        { id: 'staff', name: 'Staff', color: '#4ade80' },
+        { id: 'builder', name: 'Builder', color: '#c49bf2' }
+      ]
+    },
     skins: {
+      body: 'https://mc-heads.net/body/{name}/240',
       bust: 'https://render.crafty.gg/3d/bust/{name}',
       head: 'https://mc-heads.net/head/{name}/128',
       face: 'https://mc-heads.net/avatar/{name}/64',
@@ -42,6 +54,8 @@
   };
 
   const LEVEL_NAMES = { H: 'High', M: 'Mid', L: 'Low' };
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const STROKE = 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
   const SWORD_SMALL = '<path d="M12 2l1.6 2v9.5h-3.2V4z"/><path d="M8.5 13.5h7v1.8h-7z"/><path d="M11.2 15.3h1.6v4h-1.6z"/><path d="M10.6 19.3h2.8v1.8h-2.8z"/>';
@@ -56,13 +70,10 @@
     shield: '<path fill-rule="evenodd" d="M12 2l8 3v6.2c0 5-3.4 9.1-8 10.8-4.6-1.7-8-5.8-8-10.8V5zm0 3.2v13.6c2.9-1.5 5-4.4 5-7.6V7.1z"/>',
     smp: '<path fill-rule="evenodd" d="M8 2h8v7H8zm2 3v1.6h1.6V5zm2.4 0v1.6H14V5z"/><path d="M9 9.5h6V17H9z"/><path d="M3 9.5l6 1.2v3.8l-6-1.2z"/><path d="M21 9.5l-6 1.2v3.8l6-1.2z"/><path d="M10 17.5h4V21h-4z"/>',
     // Interface
-    star: '<path d="M12 2c.9 4.8 4.2 8.1 9 9-4.8.9-8.1 4.2-9 9-.9-4.8-4.2-8.1-9-9 4.8-.9 8.1-4.2 9-9z"/>',
     search: `<g ${STROKE}><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></g>`,
     close: `<g ${STROKE}><path d="M6 6l12 12M18 6L6 18"/></g>`,
-    copy: `<g ${STROKE}><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></g>`,
-    info: `<g ${STROKE}><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5h.01"/></g>`,
-    chat: `<g ${STROKE}><path d="M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-9l-5 4v-4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></g>`,
-    external: `<g ${STROKE}><path d="M14 4h6v6M20 4l-8 8M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></g>`,
+    copy: `<g ${STROKE}><rect x="9" y="9" width="11" height="11" rx="1.5"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></g>`,
+    discord: `<g ${STROKE}><path d="M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-9l-5 4v-4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></g>`,
     back: `<g ${STROKE}><path d="M15 5l-7 7 7 7"/></g>`,
     plus: `<g ${STROKE}><path d="M12 5v14M5 12h14"/></g>`,
     download: `<g ${STROKE}><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></g>`,
@@ -70,10 +81,8 @@
     trash: `<g ${STROKE}><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></g>`
   };
 
-  const LOGO = '<svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="brand-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b82f6"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs><rect x=".5" y=".5" width="31" height="31" rx="8" fill="#0f1524" stroke="#24304a"/><path d="M16 4.5c1.1 6 5.5 10.4 11.5 11.5-6 1.1-10.4 5.5-11.5 11.5-1.1-6-5.5-10.4-11.5-11.5 6-1.1 10.4-5.5 11.5-11.5z" fill="url(#brand-g)"/></svg>';
-
   // Shown when every skin service fails: a plain blocky face, not anyone's skin.
-  const PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" shape-rendering="crispEdges"><rect width="8" height="8" fill="#3b4559"/><rect width="8" height="2" fill="#262e40"/><rect y="2" width="1" height="1" fill="#262e40"/><rect x="7" y="2" width="1" height="1" fill="#262e40"/><rect x="1" y="4" width="2" height="1" fill="#e9edf5"/><rect x="5" y="4" width="2" height="1" fill="#e9edf5"/><rect x="2" y="4" width="1" height="1" fill="#5b6b8f"/><rect x="5" y="4" width="1" height="1" fill="#5b6b8f"/><rect x="3" y="6" width="2" height="1" fill="#2a3245"/></svg>');
+  const PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" shape-rendering="crispEdges"><rect width="8" height="8" fill="#3a3f47"/><rect width="8" height="2" fill="#262a30"/><rect y="2" width="1" height="1" fill="#262a30"/><rect x="7" y="2" width="1" height="1" fill="#262a30"/><rect x="1" y="4" width="2" height="1" fill="#e6e8eb"/><rect x="5" y="4" width="2" height="1" fill="#e6e8eb"/><rect x="2" y="4" width="1" height="1" fill="#59606b"/><rect x="5" y="4" width="1" height="1" fill="#59606b"/><rect x="3" y="6" width="2" height="1" fill="#2a2e35"/></svg>');
 
   const state = {
     config: null,
@@ -82,11 +91,19 @@
     tiers: [],            // every tier, best first, as listed in config.json "points"
     tierById: new Map(),
     titles: [],           // highest first
+    categories: [],       // Hall of Fame categories
+    categoryById: new Map(),
     rawPlayers: null,     // players.json exactly as loaded; the editor starts from it
-    players: [],          // every player in the file
+    players: [],
     ranked: [],           // players with at least one tier, best first
     byKey: new Map(),     // lower-case name -> ranked player
+    updated: '',          // players.json "updated", written by the editor
     warnings: [],
+    rawHof: null,
+    hof: [],              // Hall of Fame inductees
+    hofByKey: new Map(),
+    hofWarnings: [],
+    hofFilter: 'all',
     view: { page: 'overall' },
     rendered: false,
     profileFromApp: false,
@@ -120,20 +137,31 @@
     return `${n} ${n === 1 ? word : word + 's'}`;
   }
   function icon(name, cls) {
-    return `<svg${cls ? ` class="${cls}"` : ''} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">${ICONS[name] || ICONS.star}</svg>`;
+    return `<svg${cls ? ` class="${cls}"` : ''} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">${ICONS[name] || ICONS.overall}</svg>`;
   }
   function modeIcon(mode) {
     if (mode.image) return `<img class="mode-img" src="${esc(mode.image)}" alt="">`;
     if (ICONS[mode.icon]) return icon(mode.icon);
     const letter = esc((mode.name || mode.id || '?').charAt(0).toUpperCase());
-    return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><text x="12" y="16.2" text-anchor="middle" font-size="11" font-weight="800" font-family="Inter, sans-serif" fill="currentColor">${letter}</text></svg>`;
+    return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><text x="12" y="16.3" text-anchor="middle" font-size="11" font-weight="700" font-family="Barlow, sans-serif" fill="currentColor">${letter}</text></svg>`;
   }
   function tierColor(tier) {
     const group = Math.min(Math.max(tier.group, 1), 5);
     return `var(--t${group}-${tier.level === 'H' ? 'hi' : tier.level === 'M' ? 'mid' : 'lo'})`;
   }
-  function notice(title, html, bad) {
-    return `<div class="notice${bad ? ' error' : ''}"><h2>${esc(title)}</h2><p>${html}</p></div>`;
+  function notice(title, html, kind) {
+    return `<div class="notice${kind ? ' ' + kind : ''}"><h2>${esc(title)}</h2><p>${html}</p></div>`;
+  }
+  function formatDate(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+    return m ? `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]} ${m[1]}` : '';
+  }
+  function medal(rank) {
+    return rank <= 3 ? ` m${rank}` : '';
+  }
+  /** Marks an element to arrive with the page, in order. Only the first few stagger. */
+  function anim(i) {
+    return i < 18 ? ` data-anim style="--i:${i}"` : '';
   }
 
   let toastTimer = 0;
@@ -164,7 +192,7 @@
     }
   }
 
-  // ---------- Config and players ----------
+  // ---------- Config and data ----------
 
   function applyConfig(raw) {
     const given = raw && typeof raw === 'object' ? raw : {};
@@ -172,6 +200,7 @@
     c.github = Object.assign({}, DEFAULTS.github, given.github);
     c.skins = Object.assign({}, DEFAULTS.skins, given.skins);
     for (const key of Object.keys(c.skins)) c.skins[key] = safeUrl(c.skins[key]);
+    c.hallOfFame = Object.assign({}, DEFAULTS.hallOfFame, given.hallOfFame);
     c.siteName = String(c.siteName || DEFAULTS.siteName);
     c.serverName = String(c.serverName || '');
     c.serverIp = String(c.serverIp || '');
@@ -179,7 +208,7 @@
 
     const regions = {};
     for (const [id, color] of Object.entries(c.regions && typeof c.regions === 'object' ? c.regions : {})) {
-      regions[id.trim().toUpperCase()] = safeColor(color, '#8b95a8');
+      regions[id.trim().toUpperCase()] = safeColor(color, '#a3a8b0');
     }
     c.regions = regions;
     state.config = c;
@@ -214,8 +243,20 @@
 
     state.titles = (Array.isArray(c.titles) ? c.titles : DEFAULTS.titles)
       .filter((t) => t && t.name)
-      .map((t) => ({ name: String(t.name), minPoints: Number(t.minPoints) || 0, color: safeColor(t.color, '#8b95a8') }))
+      .map((t) => ({ name: String(t.name), minPoints: Number(t.minPoints) || 0, color: safeColor(t.color, '#a3a8b0') }))
       .sort((a, b) => b.minPoints - a.minPoints);
+
+    state.categories = [];
+    state.categoryById = new Map();
+    const cats = Array.isArray(c.hallOfFame.categories) ? c.hallOfFame.categories : DEFAULTS.hallOfFame.categories;
+    for (const cat of cats) {
+      if (!cat || typeof cat.id !== 'string' || !cat.id.trim()) continue;
+      const id = cat.id.trim().toLowerCase();
+      if (state.categoryById.has(id) || id === 'all') continue;
+      const entry = { id, name: String(cat.name || id), color: safeColor(cat.color, '#a3a8b0') };
+      state.categories.push(entry);
+      state.categoryById.set(id, entry);
+    }
   }
 
   function parseTier(value) {
@@ -223,7 +264,11 @@
   }
 
   function titleFor(points) {
-    return state.titles.find((t) => points >= t.minPoints) || { name: 'Unranked', minPoints: 0, color: '#7b8496' };
+    return state.titles.find((t) => points >= t.minPoints) || { name: 'Unranked', minPoints: 0, color: '#7b818c' };
+  }
+
+  function categoryOf(id) {
+    return state.categoryById.get(String(id || '').toLowerCase()) || { id: String(id || ''), name: String(id || 'Inductee'), color: '#a3a8b0' };
   }
 
   /** Reads players.json. Anything it cannot use is skipped and explained in `warnings`. */
@@ -278,6 +323,7 @@
     state.rawPlayers = raw;
     state.players = result.players;
     state.warnings = result.warnings;
+    state.updated = raw && !Array.isArray(raw) && typeof raw.updated === 'string' ? raw.updated : '';
     result.warnings.forEach((w) => console.warn(`[tiers] ${w}`));
 
     for (const p of state.players) {
@@ -297,6 +343,56 @@
       .sort((a, b) => b.points - a.points || b.best - a.best || a.key.localeCompare(b.key));
     state.ranked.forEach((p, i) => { p.rank = i + 1; });
     state.byKey = new Map(state.ranked.map((p) => [p.key, p]));
+  }
+
+  /** Reads halloffame.json the same way. */
+  function normalizeHof(raw) {
+    const list = Array.isArray(raw) ? raw : raw && Array.isArray(raw.inductees) ? raw.inductees : null;
+    if (!list) {
+      throw new LoadError('<code>data/halloffame.json</code> needs an <code>"inductees"</code> list, like <code>{ "inductees": [ ... ] }</code>.');
+    }
+    const inductees = [];
+    const warnings = [];
+    const seen = new Set();
+    list.forEach((entry, index) => {
+      const name = entry && typeof entry.name === 'string' ? entry.name.trim() : '';
+      if (!name) {
+        warnings.push(`Hall of Fame entry ${index + 1} has no "name", so it is left out.`);
+        return;
+      }
+      const key = name.toLowerCase();
+      if (seen.has(key)) {
+        warnings.push(`${name} is in the Hall of Fame twice. Only the first one is used.`);
+        return;
+      }
+      seen.add(key);
+      const category = typeof entry.category === 'string' ? entry.category.trim().toLowerCase() : '';
+      if (category && !state.categoryById.has(category)) {
+        warnings.push(`${name}: the Hall of Fame category "${entry.category}" is not in config.json.`);
+      }
+      const year = Number.isInteger(Number(entry.year)) && Number(entry.year) > 0 ? Number(entry.year) : null;
+      inductees.push({
+        name,
+        key,
+        uuid: typeof entry.uuid === 'string' ? entry.uuid.trim() : '',
+        category,
+        year,
+        title: typeof entry.title === 'string' ? entry.title.trim() : '',
+        text: typeof entry.text === 'string' ? entry.text.trim() : '',
+        featured: entry.featured === true,
+        order: index
+      });
+    });
+    return { inductees, warnings };
+  }
+
+  function applyHof(raw) {
+    const result = normalizeHof(raw);
+    state.rawHof = raw;
+    state.hof = result.inductees;
+    state.hofWarnings = result.warnings;
+    state.hofByKey = new Map(state.hof.map((h) => [h.key, h]));
+    result.warnings.forEach((w) => console.warn(`[tiers] ${w}`));
   }
 
   // ---------- Loading ----------
@@ -319,17 +415,18 @@
   function jsonMistake(path, text, err) {
     const where = jsonErrorPosition(text, err);
     return `<code>${esc(path)}</code> has a mistake${where ? ` on <b>line ${where.line}</b>` : ''}: ${esc(err.message)}. ` +
-      `It is usually a missing or extra comma, or a missing quote mark.` +
+      'It is usually a missing or extra comma, or a missing quote mark.' +
       (where && where.snippet ? `<br><br>Line ${where.line}: <code>${esc(where.snippet)}</code>` : '');
   }
 
-  async function fetchJson(path) {
+  async function fetchJson(path, optional) {
     let res;
     try {
       res = await fetch(path, { cache: 'no-cache' });
     } catch (e) {
       throw new LoadError(`Could not load <code>${esc(path)}</code>: ${esc(e.message)}`);
     }
+    if (optional && res.status === 404) return null;
     if (!res.ok) {
       throw new LoadError(`Could not load <code>${esc(path)}</code> (the server answered ${res.status}). It should be in a folder called <code>data</code>, next to <code>index.html</code>.`);
     }
@@ -343,7 +440,7 @@
 
   function showFatal(title, html) {
     tabs.hidden = true;
-    main.innerHTML = notice(title, html, true);
+    main.innerHTML = notice(title, html, 'error');
   }
 
   async function load() {
@@ -354,9 +451,14 @@
       return;
     }
     try {
-      const [config, players] = await Promise.all([fetchJson('data/config.json'), fetchJson('data/players.json')]);
+      const [config, players, hof] = await Promise.all([
+        fetchJson('data/config.json'),
+        fetchJson('data/players.json'),
+        fetchJson('data/halloffame.json', true)
+      ]);
       applyConfig(config.data);
       applyPlayers(players.data);
+      applyHof(hof ? hof.data : { inductees: [] });
     } catch (e) {
       showFatal('The tier list could not load', e instanceof LoadError ? e.html : esc(e.message));
       console.error(e);
@@ -369,16 +471,16 @@
     route();
   }
 
-  // ---------- Pieces of the page ----------
+  // ---------- Skins ----------
 
   function skinImg(kind, player, cls, size) {
     const s = state.config.skins;
     const id = encodeURIComponent(player.uuid || player.name);
     const fill = (template) => (template ? template.split('{name}').join(id) : '');
-    const deep = kind === 'bust' ? [fill(s.bust), fill(s.head)].filter(Boolean) : [];
+    const deep = (kind === 'body' ? [s.body, s.bust, s.head] : kind === 'bust' ? [s.bust, s.head] : []).map(fill).filter(Boolean);
     const flat = [fill(s.face), fill(s.faceBackup)].filter(Boolean);
     const urls = deep.concat(flat);
-    const classes = ['skin', cls, kind === 'bust' && !deep.length ? 'flat' : ''].filter(Boolean).join(' ');
+    const classes = ['skin', cls, kind !== 'face' && !deep.length ? 'flat' : ''].filter(Boolean).join(' ');
     return `<img class="${classes}" src="${esc(urls[0] || PLACEHOLDER)}" data-srcs="${esc(urls.join(' '))}" data-flat-from="${deep.length}" data-i="0" alt="" width="${size}" height="${size}" loading="lazy" decoding="async" referrerpolicy="no-referrer">`;
   }
 
@@ -398,70 +500,111 @@
     }
   }, true);
 
-  function regionPill(region) {
-    if (!region) return '<span class="region-empty" aria-hidden="true">—</span>';
-    return `<span class="region" style="--rc:${state.config.regions[region] || '#8b95a8'}">${esc(region)}</span>`;
+  // Skins fade in once they have arrived, instead of popping in.
+  document.addEventListener('load', (e) => {
+    const img = e.target;
+    if (img instanceof HTMLImageElement && img.classList.contains('skin')) img.classList.add('loaded');
+  }, true);
+
+  // ---------- Pieces of the page ----------
+
+  function regionText(region) {
+    if (!region) return '<span class="region-empty" aria-hidden="true">–</span>';
+    return `<span class="region" style="--rc:${state.config.regions[region] || '#a3a8b0'}">${esc(region)}</span>`;
   }
 
   function tierChip(mode, tier) {
     if (!tier) {
-      return `<div class="tier none" data-tip="${esc(mode.name)} · unranked" aria-hidden="true"><span class="tier-icon">${modeIcon(mode)}</span><span class="tier-label">—</span></div>`;
+      return `<div class="tier none" data-tip="${esc(mode.name)}: no tier" aria-hidden="true"><span class="tier-icon">${modeIcon(mode)}</span><span class="tier-label">–</span></div>`;
     }
-    const tip = `${mode.name} · ${tier.name} · ${plural(tier.points, 'point')}`;
+    const tip = `${mode.name}: ${tier.name}, ${plural(tier.points, 'point')}`;
     return `<div class="tier" style="--tc:${tierColor(tier)}" data-tip="${esc(tip)}"><span class="tier-icon">${modeIcon(mode)}</span><span class="tier-label"><span class="sr-only">${esc(mode.name)} </span>${tier.id}</span></div>`;
   }
 
-  function rankClass(rank) {
-    return rank <= 3 ? ` r${rank}` : '';
+  function pageHead(title, metaHtml) {
+    return `<div class="page-head"${anim(0)}><div><h1 class="page-title">${esc(title)}</h1></div><div class="page-meta">${metaHtml}</div></div>`;
   }
 
-  function pageHead(title, sub) {
-    return `<div class="page-head"><div><h1 class="page-title">${esc(title)}</h1><div class="page-sub">${esc(sub)}</div></div>` +
-      `<button class="btn" type="button" data-action="info">${icon('info')}<span>How points work</span></button></div>`;
+  function rankingMeta(count) {
+    const parts = [`<span>${plural(count, 'player')}</span>`];
+    if (state.updated && formatDate(state.updated)) parts.push(`<span class="dot">Updated ${formatDate(state.updated)}</span>`);
+    parts.push('<span class="dot"><button class="link-btn" type="button" data-action="info">How points work</button></span>');
+    return parts.join('');
   }
 
   function renderHeader() {
     const c = state.config;
     const name = c.serverName || c.siteName;
     header.innerHTML = `<div class="header-inner">
-      <a class="brand" href="#/rankings/overall" aria-label="${esc(c.siteName)}">${LOGO}<span class="brand-name">${esc(name)}</span>${c.serverName ? '<span class="brand-tag">TIERS</span>' : ''}</a>
-      <div class="header-search" role="search">
+      <a class="brand" href="#/rankings/overall" aria-label="${esc(c.siteName)}"><span class="brand-name">${esc(name)}</span>${c.serverName ? '<span class="brand-tag">Tiers</span>' : ''}</a>
+      <nav class="nav" aria-label="Sections">
+        <a href="#/rankings/overall" data-nav="rankings">Rankings</a>
+        <a href="#/hall-of-fame" data-nav="hof">Hall of Fame</a>
+      </nav>
+      <div class="search" role="search">
         ${icon('search', 'search-icon')}
-        <input class="search-input" id="search" type="text" placeholder="Search player…" autocomplete="off" spellcheck="false" enterkeyhint="search"
-          aria-label="Search player" role="combobox" aria-controls="suggest" aria-expanded="false" aria-autocomplete="list">
+        <input class="search-input" id="search" type="text" placeholder="Find a player" autocomplete="off" spellcheck="false" enterkeyhint="search"
+          aria-label="Find a player" role="combobox" aria-controls="suggest" aria-expanded="false" aria-autocomplete="list">
         <kbd class="search-key">/</kbd>
         <div class="suggest" id="suggest" role="listbox"></div>
       </div>
-      <div class="header-actions">
-        ${c.serverIp ? `<button class="btn btn-ip" type="button" data-copy="${esc(c.serverIp)}" title="Copy the server address">${icon('copy')}<span class="ip-long">${esc(c.serverIp)}</span><span class="ip-short">IP</span></button>` : ''}
-        ${c.discord ? `<a class="btn btn-primary btn-discord" href="${esc(c.discord)}" target="_blank" rel="noopener noreferrer" aria-label="Discord">${icon('chat')}<span>Discord</span></a>` : ''}
+      <div class="header-tools">
+        ${c.serverIp ? `<button class="text-btn" type="button" data-copy="${esc(c.serverIp)}" title="Copy the server address">${icon('copy')}<span class="ip-long">${esc(c.serverIp)}</span><span class="ip-short">IP</span></button>` : ''}
+        ${c.discord ? `<a class="text-btn" href="${esc(c.discord)}" target="_blank" rel="noopener noreferrer" aria-label="Discord">${icon('discord')}<span class="label">Discord</span></a>` : ''}
       </div>
     </div>`;
     setupSearch();
   }
 
+  function markNav(section) {
+    header.querySelectorAll('[data-nav]').forEach((a) => {
+      const on = a.dataset.nav === section;
+      a.classList.toggle('active', on);
+      if (on) a.setAttribute('aria-current', 'page');
+      else a.removeAttribute('aria-current');
+    });
+  }
+
   function renderFooter() {
     const c = state.config;
     const links = [];
-    if (c.serverIp) links.push(`<span>Play: <a href="#" data-copy="${esc(c.serverIp)}">${esc(c.serverIp)}</a></span>`);
+    if (c.serverIp) links.push(`<span>Play on <a href="#" data-copy="${esc(c.serverIp)}">${esc(c.serverIp)}</a></span>`);
     if (c.discord) links.push(`<a href="${esc(c.discord)}" target="_blank" rel="noopener noreferrer">Discord</a>`);
-    links.push('<a href="#" data-action="info">How points work</a>');
     footer.innerHTML = `<div>${esc(c.siteName)}. Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</div><div class="footer-links">${links.join('')}</div>`;
   }
 
+  /** The mode tabs stay in the page, so the underline can slide from one tab to the next. */
   function renderTabs(active) {
-    const items = [{ id: 'overall', name: 'Overall', href: '#/rankings/overall', svg: icon('overall') }]
-      .concat(state.modes.map((m) => ({ id: m.id, name: m.name, href: `#/rankings/${encodeURIComponent(m.id)}`, svg: modeIcon(m) })));
-    tabs.innerHTML = items.map((t) => {
-      const on = t.id === active;
-      return `<a class="mode-tab${on ? ' active' : ''}" href="${t.href}"${on ? ' aria-current="page"' : ''}>${t.svg}<span>${esc(t.name)}</span></a>`;
-    }).join('');
+    if (!tabs.dataset.built) {
+      const items = [{ id: 'overall', name: 'Overall', href: '#/rankings/overall', svg: icon('overall') }]
+        .concat(state.modes.map((m) => ({ id: m.id, name: m.name, href: `#/rankings/${encodeURIComponent(m.id)}`, svg: modeIcon(m) })));
+      tabs.innerHTML = items.map((t) => `<a class="tab" data-tab="${esc(t.id)}" href="${t.href}">${t.svg}<span>${esc(t.name)}</span></a>`).join('') +
+        '<span class="tab-ink" aria-hidden="true"></span>';
+      tabs.dataset.built = '1';
+    }
     tabs.hidden = false;
-    const current = tabs.querySelector('.active');
-    if (current && tabs.scrollWidth > tabs.clientWidth) {
-      tabs.scrollLeft = current.offsetLeft - (tabs.clientWidth - current.offsetWidth) / 2;
+    let current = null;
+    tabs.querySelectorAll('.tab').forEach((el) => {
+      const on = el.dataset.tab === active;
+      el.classList.toggle('active', on);
+      if (on) { el.setAttribute('aria-current', 'page'); current = el; } else el.removeAttribute('aria-current');
+    });
+    moveInk(tabs, current);
+  }
+
+  function moveInk(bar, current) {
+    const ink = bar.querySelector('.tab-ink');
+    if (!ink) return;
+    if (!current) { ink.style.width = '0'; return; }
+    ink.style.width = `${current.offsetWidth}px`;
+    ink.style.transform = `translateX(${current.offsetLeft}px)`;
+    if (bar.scrollWidth > bar.clientWidth) {
+      bar.scrollTo({ left: current.offsetLeft - (bar.clientWidth - current.offsetWidth) / 2, behavior: REDUCED ? 'auto' : 'smooth' });
     }
   }
+  window.addEventListener('resize', () => {
+    document.querySelectorAll('.tabs').forEach((bar) => moveInk(bar, bar.querySelector('.tab.active')));
+  });
 
   // ---------- Views ----------
 
@@ -469,42 +612,115 @@
     renderTabs('overall');
     const list = state.ranked;
     const hasRegion = list.some((p) => p.region);
-    const rows = list.map((p) => `<a class="row" href="#/player/${encodeURIComponent(p.name)}" style="--title-color:${p.title.color}">
-        <div class="rank"><div class="rank-badge${rankClass(p.rank)}"><span class="rank-num">${p.rank}.</span></div>${skinImg('bust', p, 'rank-bust', 66)}</div>
-        <div class="player"><div class="p-name">${esc(p.name)}</div><div class="p-title">${icon('star')}<b>${esc(p.title.name)}</b><span>(${plural(p.points, 'point')})</span></div></div>
-        ${hasRegion ? `<div class="region-cell">${regionPill(p.region)}</div>` : ''}
+    const rows = list.map((p, i) => `<a class="row${medal(p.rank)}" href="#/player/${encodeURIComponent(p.name)}" style="--title-color:${p.title.color}"${anim(i + 1)}>
+        <div class="rank-num">${p.rank}</div>
+        <div class="bust-box">${skinImg('bust', p, 'rank-bust', 60)}</div>
+        <div class="player"><div class="p-name">${esc(p.name)}</div><div class="p-sub"><span class="p-title">${esc(p.title.name)}</span><span>${plural(p.points, 'point')}</span></div></div>
+        ${hasRegion ? `<div class="region-cell">${regionText(p.region)}</div>` : ''}
         <div class="tiers">${state.modes.map((m) => tierChip(m, p.tiers[m.id])).join('')}</div>
       </a>`).join('');
     const board = list.length
       ? `<div class="board${hasRegion ? '' : ' no-region'}">
-          <div class="board-head" aria-hidden="true"><span>#</span><span>Player</span>${hasRegion ? '<span>Region</span>' : ''}<span class="th-tiers">Tiers</span></div>
+          <div class="board-head" aria-hidden="true"><span class="th-rank">#</span><span></span><span>Player</span>${hasRegion ? '<span>Region</span>' : ''}<span class="th-tiers">Tiers</span></div>
           ${rows}
         </div>`
-      : '<div class="board"><div class="empty-board">Nobody is on the tier list yet.</div></div>';
-    main.innerHTML = pageHead('Overall Rankings', `${plural(list.length, 'ranked player')} · every mode's points added together`) + board;
+      : '<div class="empty-board">Nobody is on the tier list yet.</div>';
+    main.innerHTML = pageHead('Overall', rankingMeta(list.length)) + board;
   }
 
   function renderMode(mode) {
     renderTabs(mode.id);
     const inMode = state.ranked.filter((p) => p.tiers[mode.id]);
     const groups = [...new Set(state.tiers.map((t) => t.group))].sort((a, b) => a - b);
-    const columns = groups.map((group) => {
+    const columns = groups.map((group, gi) => {
       const list = inMode
         .filter((p) => p.tiers[mode.id].group === group)
         .sort((a, b) => a.tiers[mode.id].order - b.tiers[mode.id].order || b.points - a.points || a.key.localeCompare(b.key));
       const entries = list.map((p) => {
         const tier = p.tiers[mode.id];
-        return `<li><a class="tier-player" href="#/player/${encodeURIComponent(p.name)}" style="--tc:${tierColor(tier)}" title="${esc(`${p.name} · ${tier.name}`)}">${skinImg('face', p, '', 26)}` +
-          `<span class="nm">${esc(p.name)}</span>` +
-          `<span class="hl ${tier.level === 'L' ? 'low' : 'high'}">${tier.level}T</span></a></li>`;
+        return `<li><a class="tier-player" href="#/player/${encodeURIComponent(p.name)}" style="--tc:${tierColor(tier)}" title="${esc(`${p.name}, ${tier.name}`)}">${skinImg('face', p, '', 24)}` +
+          `<span class="nm">${esc(p.name)}</span><span class="hl ${tier.level === 'L' ? 'low' : 'high'}">${tier.level}T${group}</span></a></li>`;
       }).join('');
-      return `<section class="tier-col" style="--tc:var(--t${Math.min(group, 5)}-hi)" aria-label="Tier ${group}">
-          <div class="tier-col-head">${icon('overall')}<span>Tier ${group}</span><span class="count">${list.length}</span></div>
-          ${list.length ? `<ul>${entries}</ul>` : '<div class="empty">No players yet</div>'}
+      return `<section class="tier-col" style="--tc:var(--t${Math.min(group, 5)}-hi)" aria-label="Tier ${group}"${anim(gi + 1)}>
+          <div class="tier-col-head"><span>Tier ${group}</span><span class="count">${list.length}</span></div>
+          ${list.length ? `<ul>${entries}</ul>` : '<div class="empty">Nobody yet</div>'}
         </section>`;
     }).join('');
-    main.innerHTML = pageHead(`${mode.name} Tier List`, `${plural(inMode.length, 'player')} ranked in ${mode.name}`) +
-      `<div class="tier-cols" style="--n:${groups.length}">${columns}</div>`;
+    main.innerHTML = pageHead(mode.name, rankingMeta(inMode.length)) + `<div class="tier-cols" style="--n:${groups.length}">${columns}</div>`;
+  }
+
+  function renderHof() {
+    tabs.hidden = true;
+    const c = state.config.hallOfFame;
+    const used = state.categories.filter((cat) => state.hof.some((h) => h.category === cat.id));
+    if (state.hofFilter !== 'all' && !used.some((cat) => cat.id === state.hofFilter)) state.hofFilter = 'all';
+    const shown = state.hof.filter((h) => state.hofFilter === 'all' || h.category === state.hofFilter);
+    const intro = c.intro ? `<p class="hof-intro"${anim(1)}>${esc(c.intro)}</p>` : '';
+    const meta = `<span>${plural(state.hof.length, 'inductee')}</span>`;
+
+    if (!state.hof.length) {
+      main.innerHTML = pageHead('Hall of Fame', meta) + intro + `<div class="hof-empty"${anim(2)}>No one has been inducted yet.</div>`;
+      return;
+    }
+
+    const filter = used.length > 1
+      ? `<div class="tabs hof-tabs" role="tablist"${anim(2)}>` +
+        [{ id: 'all', name: 'All', n: state.hof.length }].concat(used.map((cat) => ({ id: cat.id, name: cat.name, n: state.hof.filter((h) => h.category === cat.id).length })))
+          .map((t) => `<button class="tab${t.id === state.hofFilter ? ' active' : ''}" type="button" role="tab" aria-selected="${t.id === state.hofFilter}" data-hof-filter="${esc(t.id)}">${esc(t.name)} <span class="count">${t.n}</span></button>`).join('') +
+        '<span class="tab-ink" aria-hidden="true"></span></div>'
+      : '';
+
+    main.innerHTML = pageHead('Hall of Fame', meta) + intro + filter + `<div class="hof-content">${hofContent(shown)}</div>`;
+    const bar = main.querySelector('.hof-tabs');
+    if (bar) moveInk(bar, bar.querySelector('.tab.active'));
+  }
+
+  function hofContent(list) {
+    const byNewest = (a, b) => (b.year || 0) - (a.year || 0) || a.order - b.order;
+    let featured = list.filter((h) => h.featured).sort(byNewest);
+    if (!featured.length) featured = list.slice().sort(byNewest).slice(0, 3);
+    featured = featured.slice(0, 6);
+
+    const plaques = featured.map((h, i) => {
+      const cat = categoryOf(h.category);
+      return `<a class="plaque" href="#/player/${encodeURIComponent(h.name)}" style="--cc:${cat.color}"${anim(i + 3)}>
+          <div class="plaque-stage">
+            <span class="plaque-cat">${esc(cat.name)}</span>
+            ${h.year ? `<span class="plaque-year">${h.year}</span>` : ''}
+            ${skinImg('body', h, 'plaque-body-img', 240)}
+          </div>
+          <div class="plaque-text">
+            <h2 class="plaque-name">${esc(h.name)}</h2>
+            ${h.title ? `<p class="plaque-title">${esc(h.title)}</p>` : ''}
+            ${h.text ? `<p class="plaque-cite">${esc(h.text)}</p>` : ''}
+          </div>
+        </a>`;
+    }).join('');
+
+    const years = new Map();
+    for (const h of list.slice().sort(byNewest)) {
+      const key = h.year || 0;
+      if (!years.has(key)) years.set(key, []);
+      years.get(key).push(h);
+    }
+    let n = featured.length + 3;
+    const ledger = [...years.entries()].map(([year, entries]) => `<section class="hof-year"${anim(n++)}>
+        <div class="hof-year-num">${year || '–'}</div>
+        <div>${entries.sort((a, b) => a.key.localeCompare(b.key)).map((h) => {
+          const cat = categoryOf(h.category);
+          return `<div class="hof-entry" style="--cc:${cat.color}">
+              ${skinImg('face', h, '', 40)}
+              <div>
+                <div class="hof-entry-name"><a href="#/player/${encodeURIComponent(h.name)}">${esc(h.name)}</a></div>
+                ${h.title ? `<div class="hof-entry-title">${esc(h.title)}</div>` : ''}
+                ${h.text ? `<div class="hof-entry-cite">${esc(h.text)}</div>` : ''}
+              </div>
+              <div class="hof-entry-cat">${esc(cat.name)}</div>
+            </div>`;
+        }).join('')}</div>
+      </section>`).join('');
+
+    return `<div class="hof-featured">${plaques}</div><div class="hof-ledger"><h2 class="hof-ledger-title"${anim(featured.length + 2)}>Every inductee</h2>${ledger}</div>`;
   }
 
   function renderEditor() {
@@ -512,8 +728,41 @@
     if (window.Tiers.editor) {
       window.Tiers.editor.mount(main);
     } else {
-      main.innerHTML = notice('The editor did not load', 'Check that <code>editor.js</code> is uploaded next to <code>index.html</code>.', true);
+      main.innerHTML = notice('The editor did not load', 'Check that <code>editor.js</code> is uploaded next to <code>index.html</code>.', 'error');
     }
+  }
+
+  // ---------- Page changes ----------
+
+  let swapToken = 0;
+  let enterTimer = 0;
+
+  /** Lets the marked elements arrive one after another, once; later redraws stay still. */
+  function playEnter() {
+    if (REDUCED) return;
+    main.classList.remove('is-entering');
+    void main.offsetWidth;
+    main.classList.add('is-entering');
+    clearTimeout(enterTimer);
+    enterTimer = setTimeout(() => main.classList.remove('is-entering'), 1100);
+  }
+
+  /** Fades the old page out, draws the new one, and lets it arrive. */
+  function swap(draw, scrollTop) {
+    const token = ++swapToken;
+    const finish = () => {
+      if (token !== swapToken) return;
+      main.classList.remove('is-leaving', 'is-entering');
+      draw();
+      if (scrollTop) window.scrollTo(0, 0);
+      playEnter();
+    };
+    if (REDUCED || !state.rendered || !main.firstElementChild) {
+      finish();
+      return;
+    }
+    main.classList.add('is-leaving');
+    setTimeout(finish, 140);
   }
 
   // ---------- Dialogs ----------
@@ -528,26 +777,39 @@
     modal = { kind: options.kind || 'dialog', lastFocus };
     document.body.style.overflow = 'hidden';
     const dialog = modalRoot.querySelector('.modal');
-    (dialog.querySelector('[autofocus]') || dialog).focus();
+    (dialog.querySelector('[autofocus]') || dialog).focus({ preventScroll: true });
     return dialog;
   }
 
+  /** Closes at once as far as the page is concerned; the dialog itself animates out. */
   function hideModal() {
     if (!modal) return;
     const lastFocus = modal.lastFocus;
     modal = null;
-    modalRoot.innerHTML = '';
     document.body.style.overflow = '';
+    const backdrop = modalRoot.querySelector('.modal-backdrop');
+    if (backdrop) {
+      if (REDUCED) {
+        backdrop.remove();
+      } else {
+        backdrop.classList.add('closing');
+        backdrop.removeAttribute('data-backdrop');
+        const gone = () => { if (backdrop.parentNode) backdrop.remove(); };
+        backdrop.addEventListener('animationend', (e) => { if (e.target === backdrop) gone(); });
+        setTimeout(gone, 260);
+      }
+    }
     if (lastFocus && document.contains(lastFocus) && lastFocus.focus) lastFocus.focus({ preventScroll: true });
   }
 
   function viewHash(view) {
     if (view.page === 'mode') return `#/rankings/${encodeURIComponent(view.mode)}`;
+    if (view.page === 'hof') return '#/hall-of-fame';
     if (view.page === 'edit') return '#/edit';
     return '#/rankings/overall';
   }
 
-  /** A profile has its own address, so closing one goes back to the list's address. */
+  /** A profile has its own address, so closing one goes back to the address behind it. */
   function requestClose() {
     if (modal && modal.kind === 'profile') {
       if (state.profileFromApp) history.back();
@@ -558,44 +820,61 @@
   }
 
   function openProfile(name) {
-    const p = state.byKey.get(String(name).toLowerCase());
-    if (!p) {
-      showModal(`<div class="modal-body"><h2>Not on the tier list</h2><p>No ranked player is called <b>${esc(name)}</b>.</p></div>`, { kind: 'profile', label: 'Player not found' });
+    const key = String(name).toLowerCase();
+    const p = state.byKey.get(key);
+    const h = state.hofByKey.get(key);
+    if (!p && !h) {
+      showModal(`<div class="modal-body"><h2>Not found</h2><p>No ranked player is called <b>${esc(name)}</b>.</p></div>`, { kind: 'profile', label: 'Player not found' });
       return;
     }
-    const held = state.modes.filter((m) => p.tiers[m.id]).sort((a, b) => p.tiers[a.id].order - p.tiers[b.id].order);
-    showModal(`<div class="profile" style="--title-color:${p.title.color}">
-        <div class="profile-top">
-          <div class="profile-avatar">${skinImg('bust', p, 'profile-bust', 100)}</div>
-          <h2 class="profile-name">${esc(p.name)}</h2>
-          <div class="chips">
-            <span class="chip title-chip">${icon('star')}${esc(p.title.name)}</span>
-            ${p.region ? regionPill(p.region) : ''}
-            <a class="chip" href="https://namemc.com/profile/${encodeURIComponent(p.name)}" target="_blank" rel="noopener noreferrer">NameMC ${icon('external')}</a>
-          </div>
-        </div>
-        <div class="profile-section">
-          <div class="section-label">Position</div>
-          <div class="position-bar"><span class="position-rank${rankClass(p.rank)}"><span>#${p.rank}</span></span><span class="pos-text">Overall</span><span class="pos-points">${plural(p.points, 'point')}</span></div>
+    const who = p || h;
+    const titleColor = p ? p.title.color : categoryOf(h.category).color;
+    const facts = [];
+    if (p) facts.push(`<span class="p-title">${esc(p.title.name)}</span>`);
+    if (p && p.region) facts.push(regionText(p.region));
+    facts.push(`<a href="https://namemc.com/profile/${encodeURIComponent(who.name)}" target="_blank" rel="noopener noreferrer">NameMC</a>`);
+
+    let sections = '';
+    if (p) {
+      const held = state.modes.filter((m) => p.tiers[m.id]).sort((a, b) => p.tiers[a.id].order - p.tiers[b.id].order);
+      sections += `<div class="profile-section">
+          <div class="section-label">Overall</div>
+          <div class="position"><span class="position-rank${medal(p.rank)}">#${p.rank}</span><span class="position-of">of ${state.ranked.length}</span><span class="position-points">${p.points}<small>${p.points === 1 ? 'point' : 'points'}</small></span></div>
         </div>
         <div class="profile-section">
           <div class="section-label">Tiers</div>
           <div class="profile-tiers">${held.map((m) => tierChip(m, p.tiers[m.id])).join('')}</div>
+        </div>`;
+    } else {
+      sections += '<div class="profile-section"><div class="profile-empty">Not on the tier list.</div></div>';
+    }
+    if (h) {
+      const cat = categoryOf(h.category);
+      sections += `<div class="profile-section" style="--cc:${cat.color}">
+          <div class="section-label">Hall of Fame</div>
+          <div class="profile-hof"><b>${esc(cat.name)}</b><span>${h.year ? `Inducted ${h.year}` : 'Inducted'}${h.title ? `. ${esc(h.title)}` : ''}</span></div>
+        </div>`;
+    }
+
+    showModal(`<div style="--title-color:${titleColor}">
+        <div class="profile-head">
+          <div class="profile-avatar">${skinImg('bust', who, 'profile-bust', 104)}</div>
+          <div><h2 class="profile-name">${esc(who.name)}</h2><div class="profile-facts">${facts.join('')}</div></div>
         </div>
-      </div>`, { kind: 'profile', label: p.name });
+        ${sections}
+      </div>`, { kind: 'profile', label: who.name });
   }
 
   function openInfo() {
     const tierRows = state.tiers.map((t) => `<tr><td><span class="tier-label" style="--tc:${tierColor(t)}">${t.id}</span> ${esc(t.name)}</td><td>${plural(t.points, 'point')}</td></tr>`).join('');
-    const titleRows = state.titles.map((t) => `<tr><td><span class="info-title" style="--title-color:${t.color}">${icon('star')}${esc(t.name)}</span></td><td>${t.minPoints}+</td></tr>`).join('');
+    const titleRows = state.titles.map((t) => `<tr><td><span class="info-title" style="--title-color:${t.color}">${esc(t.name)}</span></td><td>${t.minPoints}+</td></tr>`).join('');
     showModal(`<div class="modal-body">
         <h2>How points work</h2>
-        <p>Every tier a player holds in a mode is worth points, and the overall ranking adds up the points from every mode. A strong all-rounder can rank above a player who is only good at one mode.</p>
+        <p>Each tier you hold is worth points. Your overall score is the total across all ${plural(state.modes.length, 'mode')}, so playing more modes well counts for more than one mode alone. On equal points, the better single tier goes first.</p>
         <div class="info-grid">
           <div><div class="section-label">Tiers</div><table class="info-table">${tierRows}</table></div>
           <div><div class="section-label">Titles</div><table class="info-table">${titleRows}</table></div>
         </div>
-        <p>A high tier (HT) is above a low tier (LT) of the same number. Players on equal points are ordered by their best single tier.</p>
       </div>`, { label: 'How points work', wide: true });
   }
 
@@ -632,8 +911,8 @@
         .sort((a, b) => Number(b.key.startsWith(q)) - Number(a.key.startsWith(q)) || a.rank - b.rank)
         .slice(0, 6);
       box.innerHTML = items.length
-        ? items.map((p, i) => `<a class="suggest-item" role="option" id="sg-${i}" href="#/player/${encodeURIComponent(p.name)}" aria-selected="false">${skinImg('face', p, '', 28)}<span class="suggest-name">${esc(p.name)}</span><span class="suggest-points">#${p.rank} · ${plural(p.points, 'pt')}</span></a>`).join('')
-        : `<div class="suggest-empty">No ranked player matches “${esc(input.value.trim())}”.</div>`;
+        ? items.map((p, i) => `<a class="suggest-item" role="option" id="sg-${i}" href="#/player/${encodeURIComponent(p.name)}" aria-selected="false">${skinImg('face', p, '', 24)}<span class="suggest-name">${esc(p.name)}</span><span class="suggest-points">#${p.rank}, ${plural(p.points, 'pt')}</span></a>`).join('')
+        : `<div class="suggest-empty">Nobody called “${esc(input.value.trim())}”.</div>`;
       box.classList.add('open');
       input.setAttribute('aria-expanded', 'true');
       highlight(items.length ? 0 : -1);
@@ -650,7 +929,7 @@
     box.addEventListener('click', (e) => {
       if (e.target.closest('.suggest-item')) { input.value = ''; close(); input.blur(); }
     });
-    document.addEventListener('click', (e) => { if (!e.target.closest('.header-search')) close(); });
+    document.addEventListener('click', (e) => { if (!e.target.closest('.search')) close(); });
   }
 
   // ---------- Addresses ----------
@@ -663,6 +942,7 @@
       parts = [];
     }
     if (parts[0] === 'edit') return { page: 'edit' };
+    if (parts[0] === 'hall-of-fame') return { page: 'hof' };
     if (parts[0] === 'player' && parts[1]) return { page: 'player', name: parts[1] };
     if (parts[0] === 'rankings' && parts[1] && parts[1].toLowerCase() !== 'overall') return { page: 'mode', mode: parts[1].toLowerCase() };
     return { page: 'overall' };
@@ -672,17 +952,24 @@
     return a.page === b.page && (a.page !== 'mode' || a.mode === b.mode);
   }
 
-  function renderView(view) {
-    state.rendered = true;
-    if (view.page === 'edit') { renderEditor(); return; }
-    if (view.page === 'mode') {
-      const mode = state.modeById.get(view.mode);
-      if (mode) { renderMode(mode); return; }
+  function renderView(view, scrollTop) {
+    if (view.page === 'mode' && !state.modeById.get(view.mode)) {
       toast(`There is no mode called “${view.mode}”.`, true);
-      state.view = { page: 'overall' };
+      view = { page: 'overall' };
+      state.view = view;
       history.replaceState(null, '', '#/rankings/overall');
     }
-    renderOverall();
+    markNav(view.page === 'hof' ? 'hof' : view.page === 'edit' ? '' : 'rankings');
+    const draw = view.page === 'edit' ? renderEditor
+      : view.page === 'hof' ? renderHof
+      : view.page === 'mode' ? () => renderMode(state.modeById.get(view.mode))
+      : renderOverall;
+    // The tabs move at once; the content follows.
+    if (view.page === 'mode') renderTabs(view.mode);
+    else if (view.page === 'overall') renderTabs('overall');
+    else tabs.hidden = true;
+    swap(draw, scrollTop);
+    state.rendered = true;
   }
 
   function route() {
@@ -690,20 +977,19 @@
     const next = parseHash();
     if (next.page === 'player') {
       state.profileFromApp = state.rendered;
-      if (!state.rendered) renderView(state.view);
+      if (!state.rendered) renderView(state.view, false);
       openProfile(next.name);
       return;
     }
     const closingProfile = modal && modal.kind === 'profile';
     if (modal) hideModal();
-    if (closingProfile && state.rendered && sameView(next, state.view)) return; // the list behind it is still right
+    if (closingProfile && state.rendered && sameView(next, state.view)) return; // the page behind it is still right
     const leaving = state.view;
     if (leaving.page === 'edit' && next.page !== 'edit' && window.Tiers.editor && window.Tiers.editor.isDirty()) {
       toast('Your editor changes are not saved yet. They are kept until you close this tab.');
     }
     state.view = next;
-    renderView(next);
-    if (!sameView(leaving, next)) window.scrollTo(0, 0);
+    renderView(next, state.rendered && !sameView(leaving, next));
   }
 
   // ---------- Page-wide events ----------
@@ -716,6 +1002,26 @@
       e.preventDefault();
       if (action.dataset.action === 'close-modal') requestClose();
       else if (action.dataset.action === 'info') openInfo();
+      return;
+    }
+    const filter = target.closest('[data-hof-filter]');
+    if (filter) {
+      state.hofFilter = filter.dataset.hofFilter;
+      const bar = filter.closest('.tabs');
+      bar.querySelectorAll('.tab').forEach((t) => {
+        const on = t === filter;
+        t.classList.toggle('active', on);
+        t.setAttribute('aria-selected', String(on));
+      });
+      moveInk(bar, filter);
+      const content = main.querySelector('.hof-content');
+      const shown = state.hof.filter((h) => state.hofFilter === 'all' || h.category === state.hofFilter);
+      const redraw = () => {
+        content.innerHTML = hofContent(shown);
+        playEnter();
+      };
+      if (REDUCED) redraw();
+      else { content.style.transition = 'opacity .12s, filter .12s'; content.style.opacity = '0'; content.style.filter = 'blur(4px)'; setTimeout(() => { content.style.opacity = ''; content.style.filter = ''; redraw(); }, 120); }
       return;
     }
     const copy = target.closest('[data-copy]');
@@ -732,8 +1038,9 @@
       return;
     }
     if (e.key === 'Tab' && modal) {
-      const dialog = modalRoot.querySelector('.modal');
-      const focusable = [...dialog.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), summary, [tabindex="0"]')]
+      const dialog = modalRoot.querySelector('.modal-backdrop:not(.closing) .modal');
+      if (!dialog) return;
+      const focusable = [...dialog.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea, summary, [tabindex="0"]')]
         .filter((el) => el.offsetParent !== null);
       if (!focusable.length) return;
       const first = focusable[0];
@@ -755,13 +1062,16 @@
     get config() { return state.config; },
     get modes() { return state.modes; },
     get tiers() { return state.tiers; },
+    get categories() { return state.categories; },
     get rawPlayers() { return state.rawPlayers; },
-    get warnings() { return state.warnings; },
+    get rawHof() { return state.rawHof; },
+    get warnings() { return state.warnings.concat(state.hofWarnings); },
     get page() { return state.view.page; },
-    esc, icon, modeIcon, tierColor, parseTier, titleFor, skinImg, regionPill, plural,
-    toast, copyText, showModal, hideModal, normalizePlayers, jsonMistake,
-    /** After the editor saves, the rankings show the new list without a reload. */
+    esc, icon, modeIcon, tierColor, parseTier, titleFor, categoryOf, skinImg, regionText, plural,
+    toast, copyText, showModal, hideModal, normalizePlayers, normalizeHof, jsonMistake,
+    /** After the editor saves, the public pages show the new data without a reload. */
     replacePlayers(raw) { applyPlayers(raw); },
+    replaceHof(raw) { applyHof(raw); },
     editor: null
   };
 

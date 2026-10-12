@@ -1,11 +1,11 @@
 /* CombatAdvanced Tiers: the editor, at #/edit.
  *
- * Add any Minecraft player, pick their tier in each mode, then save.
- *
- * Saving changes data/players.json in the site's GitHub repository through
- * GitHub's API, with a token that lives only in this browser. GitHub Pages
- * then rebuilds the site by itself, usually within a minute. Without a token
- * the new players.json can be downloaded or copied, and uploaded by hand.
+ * Two lists: players and their tiers (data/players.json), and the Hall of
+ * Fame (data/halloffame.json). Saving writes whichever changed straight to
+ * the site's GitHub repository through GitHub's API, with a token that lives
+ * only in this browser. GitHub Pages then rebuilds the site by itself,
+ * usually within a minute. Without a token both files can be downloaded or
+ * copied and uploaded by hand.
  *
  * Nobody else can save: the page is public, but a save needs a token with
  * write access to the repository.
@@ -20,6 +20,10 @@
   const NAME_RE = /^[A-Za-z0-9_]{1,16}$/;
   const KEY_TOKEN = 'tiers.githubToken';
   const KEY_TARGET = 'tiers.githubTarget';
+  const DOCS = {
+    players: { file: 'players.json', tab: 'tiers' },
+    hof: { file: 'halloffame.json', tab: 'hof' }
+  };
 
   let ed = null;   // the editor's state; kept while the tab is open, so leaving the page loses nothing
   let host = null; // the element it is drawn in
@@ -28,6 +32,7 @@
   const $ = (selector) => document.querySelector(selector);
   const byName = (a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase());
   const textOf = (data) => JSON.stringify(data, null, 2) + '\n';
+  const today = () => new Date().toISOString().slice(0, 10);
 
   // ---------- Browser storage (the token never goes anywhere but GitHub) ----------
 
@@ -50,11 +55,12 @@
   /** Which repository to save to: the last one used here, else config.json, else the github.io address. */
   function readTarget() {
     const cfg = T.config.github || {};
+    const legacyDir = typeof cfg.path === 'string' && cfg.path.includes('/') ? cfg.path.replace(/\/[^/]*$/, '') : '';
     const target = {
       owner: String(cfg.owner || '').trim(),
       repo: String(cfg.repo || '').trim(),
       branch: String(cfg.branch || 'main').trim() || 'main',
-      path: String(cfg.path || 'data/players.json').replace(/^\/+/, '')
+      dir: String(cfg.dir || legacyDir || 'data').replace(/^\/+|\/+$/g, '')
     };
     if ((!target.owner || !target.repo) && /\.github\.io$/i.test(location.hostname)) {
       const owner = location.hostname.split('.')[0];
@@ -79,9 +85,13 @@
     } catch (e) { /* storage blocked */ }
   }
 
-  // ---------- players.json <-> the editor's list ----------
+  function pathOf(doc) {
+    return (ed.target.dir ? `${ed.target.dir}/` : '') + DOCS[doc].file;
+  }
 
-  function fromRaw(raw) {
+  // ---------- players.json ----------
+
+  function fromRawPlayers(raw) {
     const list = Array.isArray(raw) ? raw : raw && Array.isArray(raw.players) ? raw.players : [];
     const modeIds = new Set(T.modes.map((m) => m.id));
     const players = [];
@@ -110,14 +120,10 @@
       players.push({ id: ++seq, name, region, tiers, keep, extra, isNew: false });
     }
     players.sort(byName);
-    const top = {};
-    if (raw && !Array.isArray(raw) && typeof raw === 'object') {
-      for (const [key, value] of Object.entries(raw)) if (key !== 'players') top[key] = value;
-    }
-    return { players, top };
+    return { list: players, top: topOf(raw, 'players') };
   }
 
-  function buildData(list, top) {
+  function buildPlayers(list, top) {
     const players = (list || ed.players).slice().sort(byName).map((p) => {
       const out = { name: p.name };
       if (p.region) out.region = p.region;
@@ -129,17 +135,85 @@
     return Object.assign({}, top || ed.top, { players });
   }
 
-  function load(raw) {
-    const result = fromRaw(raw);
-    ed.players = result.players;
-    ed.top = result.top;
-    ed.savedData = buildData();
-    ed.savedText = textOf(ed.savedData);
-    ed.justSaved = false;
+  // ---------- halloffame.json ----------
+
+  function fromRawHof(raw) {
+    const list = Array.isArray(raw) ? raw : raw && Array.isArray(raw.inductees) ? raw.inductees : [];
+    const out = [];
+    const seen = new Set();
+    for (const entry of list) {
+      const name = entry && typeof entry.name === 'string' ? entry.name.trim() : '';
+      if (!name || seen.has(name.toLowerCase())) continue;
+      seen.add(name.toLowerCase());
+      const extra = {};
+      for (const [key, value] of Object.entries(entry)) {
+        if (!['name', 'category', 'year', 'title', 'text', 'featured'].includes(key)) extra[key] = value;
+      }
+      const year = Number.isInteger(Number(entry.year)) && Number(entry.year) > 0 ? Number(entry.year) : null;
+      out.push({
+        id: ++seq,
+        name,
+        category: typeof entry.category === 'string' ? entry.category.trim().toLowerCase() : '',
+        year,
+        title: typeof entry.title === 'string' ? entry.title : '',
+        text: typeof entry.text === 'string' ? entry.text : '',
+        featured: entry.featured === true,
+        extra,
+        isNew: false
+      });
+    }
+    return { list: out, top: topOf(raw, 'inductees') };
+  }
+
+  function buildHof(list, top) {
+    const inductees = (list || ed.hof).slice()
+      .sort((a, b) => (b.year || 0) - (a.year || 0) || byName(a, b))
+      .map((h) => {
+        const out = { name: h.name };
+        if (h.category) out.category = h.category;
+        if (h.year) out.year = h.year;
+        if (h.title.trim()) out.title = h.title.trim();
+        if (h.text.trim()) out.text = h.text.trim();
+        if (h.featured) out.featured = true;
+        return Object.assign(out, h.extra);
+      });
+    return Object.assign({}, top || ed.hofTop, { inductees });
+  }
+
+  function topOf(raw, listKey) {
+    const top = {};
+    if (raw && !Array.isArray(raw) && typeof raw === 'object') {
+      for (const [key, value] of Object.entries(raw)) if (key !== listKey && key !== 'updated') top[key] = value;
+    }
+    return top;
+  }
+
+  // ---------- Both files ----------
+
+  function build(doc) {
+    return doc === 'players' ? buildPlayers() : buildHof();
+  }
+
+  /** What is written to GitHub: players.json also says when it was last saved. */
+  function fileText(doc, data) {
+    return textOf(doc === 'players' ? Object.assign({ updated: today() }, data) : data);
+  }
+
+  function load(doc, raw) {
+    const result = doc === 'players' ? fromRawPlayers(raw) : fromRawHof(raw);
+    if (doc === 'players') { ed.players = result.list; ed.top = result.top; }
+    else { ed.hof = result.list; ed.hofTop = result.top; }
+    const data = build(doc);
+    ed.doc[doc].savedData = data;
+    ed.doc[doc].savedText = textOf(data);
+  }
+
+  function dirtyDoc(doc) {
+    return !!ed && textOf(build(doc)) !== ed.doc[doc].savedText;
   }
 
   function isDirty() {
-    return !!ed && textOf(buildData()) !== ed.savedText;
+    return !!ed && (dirtyDoc('players') || dirtyDoc('hof'));
   }
 
   function pointsOf(p) {
@@ -157,9 +231,9 @@
 
   // ---------- GitHub ----------
 
-  function contentsPath() {
+  function contentsPath(doc) {
     const t = ed.target;
-    return `/repos/${encodeURIComponent(t.owner)}/${encodeURIComponent(t.repo)}/contents/${t.path.split('/').map(encodeURIComponent).join('/')}`;
+    return `/repos/${encodeURIComponent(t.owner)}/${encodeURIComponent(t.repo)}/contents/${pathOf(doc).split('/').map(encodeURIComponent).join('/')}`;
   }
 
   function apiError(status, data) {
@@ -172,7 +246,7 @@
     else if (status === 403 && /rate limit/i.test(said)) text = 'GitHub is limiting requests for a moment. Wait a minute and try again.';
     else if (status === 403) text = `This token is not allowed to change ${repo}. Give it access to that repository, with Contents set to "Read and write".`;
     else if (status === 404) text = `GitHub cannot find ${repo} (branch ${t.branch}). Check the owner, repository and branch, and that the token has access to that repository.`;
-    else if (status === 409) text = 'players.json changed on GitHub in the meantime.';
+    else if (status === 409) text = 'The file changed on GitHub in the meantime.';
     else text = `GitHub answered ${status}${said ? `: ${said}` : ''}.`;
     const err = new Error(text);
     err.status = status;
@@ -215,12 +289,12 @@
     return new TextDecoder().decode(bytes);
   }
 
-  /** players.json as it is on GitHub right now, or null when the repository has no such file yet. */
-  async function getFile() {
+  /** A file as it is on GitHub right now, or null when the repository has no such file yet. */
+  async function getFile(doc) {
     try {
-      const data = await api('GET', `${contentsPath()}?ref=${encodeURIComponent(ed.target.branch)}`);
+      const data = await api('GET', `${contentsPath(doc)}?ref=${encodeURIComponent(ed.target.branch)}`);
       if (!data || Array.isArray(data) || data.type !== 'file') {
-        throw new Error(`${ed.target.path} in ${ed.target.owner}/${ed.target.repo} is a folder, not a file.`);
+        throw new Error(`${pathOf(doc)} in ${ed.target.owner}/${ed.target.repo} is a folder, not a file.`);
       }
       return { sha: data.sha, text: fromBase64(data.content || '') };
     } catch (e) {
@@ -231,45 +305,54 @@
     }
   }
 
-  function putFile(text, message) {
+  function putFile(doc, text, message) {
     const body = { message, content: toBase64(text), branch: ed.target.branch };
-    if (ed.sha) body.sha = ed.sha;
-    return api('PUT', contentsPath(), body);
+    if (ed.doc[doc].sha) body.sha = ed.doc[doc].sha;
+    return api('PUT', contentsPath(doc), body);
   }
 
   /**
-   * Reads players.json from GitHub. Unsaved edits are never thrown away: when
+   * Reads both files from GitHub. Unsaved edits are never thrown away: when
    * there are some and GitHub's copy is newer than the list they started
    * from, `staleBase` makes the next save ask before replacing it.
    */
   async function refreshFromGitHub() {
-    const file = await getFile();
+    const outcomes = {};
+    for (const doc of Object.keys(DOCS)) outcomes[doc] = await refreshDoc(doc);
     ed.connected = true;
-    ed.sha = file ? file.sha : null;
-    ed.staleBase = false;
+    return outcomes;
+  }
+
+  async function refreshDoc(doc) {
+    const file = await getFile(doc);
+    const state = ed.doc[doc];
+    state.sha = file ? file.sha : null;
+    state.staleBase = false;
     if (!file) return 'missing';
     let data;
     let warnings;
     try {
       data = JSON.parse(file.text);
-      warnings = T.normalizePlayers(data).warnings;
+      warnings = (doc === 'players' ? T.normalizePlayers(data) : T.normalizeHof(data)).warnings;
     } catch (e) {
-      const why = e instanceof SyntaxError ? T.jsonMistake(ed.target.path, file.text, e) : T.esc(e.message);
-      showProblem(`${why}<br><br>Fix it on GitHub, or save from here to replace it with the list below.`);
+      const why = e instanceof SyntaxError ? T.jsonMistake(pathOf(doc), file.text, e) : T.esc(e.message);
+      showProblem('On GitHub', `${why}<br><br>Fix it on GitHub, or save from here to replace it with the list below.`);
       return 'broken';
     }
-    if (isDirty()) {
-      const theirs = fromRaw(data);
-      ed.staleBase = textOf(buildData(theirs.players, theirs.top)) !== ed.savedText;
-      return ed.staleBase ? 'changed' : 'same';
+    if (dirtyDoc(doc)) {
+      const theirs = doc === 'players' ? fromRawPlayers(data) : fromRawHof(data);
+      const theirText = textOf(doc === 'players' ? buildPlayers(theirs.list, theirs.top) : buildHof(theirs.list, theirs.top));
+      state.staleBase = theirText !== state.savedText;
+      return state.staleBase ? 'changed' : 'same';
     }
-    ed.warnings = warnings;
-    load(data);
-    T.replacePlayers(data);
+    ed.warnings[doc] = warnings;
+    load(doc, data);
+    if (doc === 'players') T.replacePlayers(data);
+    else T.replaceHof(data);
     return 'loaded';
   }
 
-  function commitMessage(before, after) {
+  function playersMessage(before, after) {
     const old = new Map(before.players.map((p) => [p.name.toLowerCase(), p]));
     const now = new Map(after.players.map((p) => [p.name.toLowerCase(), p]));
     const modeName = (id) => (T.modes.find((m) => m.id === id) || { name: id }).name;
@@ -286,62 +369,93 @@
       if ((was.region || '') !== (p.region || '')) parts.push(`${p.name} region ${p.region || 'none'}`);
     }
     for (const [key, p] of old) if (!now.has(key)) parts.push(`remove ${p.name}`);
-    if (!parts.length) return 'Tiers: update players.json';
-    return `Tiers: ${parts.slice(0, 3).join(', ')}${parts.length > 3 ? ` and ${parts.length - 3} more` : ''}`;
+    return summary('Tiers', parts);
+  }
+
+  function hofMessage(before, after) {
+    const old = new Map(before.inductees.map((h) => [h.name.toLowerCase(), h]));
+    const now = new Map(after.inductees.map((h) => [h.name.toLowerCase(), h]));
+    const parts = [];
+    for (const [key, h] of now) {
+      const was = old.get(key);
+      if (!was) parts.push(`induct ${h.name}`);
+      else if (JSON.stringify(was) !== JSON.stringify(h)) parts.push(`update ${h.name}`);
+    }
+    for (const [key, h] of old) if (!now.has(key)) parts.push(`remove ${h.name}`);
+    return summary('Hall of Fame', parts);
+  }
+
+  function summary(prefix, parts) {
+    if (!parts.length) return `${prefix}: update`;
+    return `${prefix}: ${parts.slice(0, 3).join(', ')}${parts.length > 3 ? ` and ${parts.length - 3} more` : ''}`;
   }
 
   async function save() {
     if (ed.busy) return;
     if (!ed.token) { openConnect(true); return; }
-    const data = buildData();
-    const text = textOf(data);
+    const docs = Object.keys(DOCS).filter(dirtyDoc);
+    if (!docs.length) return;
     setBusy(true, 'Saving…');
+    hideProblem();
     try {
       if (!ed.connected) await refreshFromGitHub();
-      if (ed.staleBase && !confirm('players.json on GitHub changed after you started editing (maybe from another device). Replace it with your list?')) {
-        throw new Error('Not saved. Reload the page to start from the newest players.json.');
-      }
-      const message = commitMessage(ed.savedData, data);
-      let result;
-      try {
-        result = await putFile(text, message);
-      } catch (e) {
-        const conflict = e.status === 409 || (e.status === 422 && /sha/i.test(e.said));
-        if (!conflict) throw e;
-        const latest = await getFile();
-        const replace = confirm('players.json was changed on GitHub after you opened the editor (maybe from another device). Replace it with your version?');
-        if (!replace) throw new Error('Not saved. Reload the page to start from the newest players.json.');
-        ed.sha = latest ? latest.sha : null;
-        result = await putFile(text, message);
-      }
-      ed.sha = result && result.content ? result.content.sha : ed.sha;
-      ed.savedData = data;
-      ed.savedText = text;
-      ed.staleBase = false;
-      ed.justSaved = true;
-      ed.warnings = [];
-      ed.players.forEach((p) => { p.isNew = false; });
-      T.replacePlayers(data);
+      for (const doc of docs) await saveDoc(doc);
       render();
       T.toast('Saved. The site shows it within a minute or two.');
     } catch (e) {
-      showProblem(T.esc(e.message));
+      showProblem('Not saved', T.esc(e.message));
       T.toast(e.message, true);
     } finally {
       setBusy(false);
     }
   }
 
+  async function saveDoc(doc) {
+    const state = ed.doc[doc];
+    const label = doc === 'players' ? 'players.json' : 'halloffame.json';
+    if (state.staleBase && !confirm(`${label} on GitHub changed after you started editing (maybe from another device). Replace it with your version?`)) {
+      throw new Error('Not saved. Reload the page to start from the newest version.');
+    }
+    const data = build(doc);
+    const text = fileText(doc, data);
+    const message = doc === 'players' ? playersMessage(state.savedData, data) : hofMessage(state.savedData, data);
+    let result;
+    try {
+      result = await putFile(doc, text, message);
+    } catch (e) {
+      const conflict = e.status === 409 || (e.status === 422 && /sha/i.test(e.said));
+      if (!conflict) throw e;
+      const latest = await getFile(doc);
+      const replace = confirm(`${label} was changed on GitHub after you opened the editor (maybe from another device). Replace it with your version?`);
+      if (!replace) throw new Error('Not saved. Reload the page to start from the newest version.');
+      state.sha = latest ? latest.sha : null;
+      result = await putFile(doc, text, message);
+    }
+    state.sha = result && result.content ? result.content.sha : state.sha;
+    state.savedData = data;
+    state.savedText = textOf(data);
+    state.staleBase = false;
+    ed.justSaved = true;
+    ed.warnings[doc] = [];
+    if (doc === 'players') {
+      ed.players.forEach((p) => { p.isNew = false; });
+      T.replacePlayers(JSON.parse(text));
+    } else {
+      ed.hof.forEach((h) => { h.isNew = false; });
+      T.replaceHof(data);
+    }
+  }
+
   // ---------- Drawing ----------
 
   function metaHtml(p) {
-    if (!Object.keys(p.tiers).length) return '<span>No tiers yet, so not shown on the site</span>';
+    if (!Object.keys(p.tiers).length) return 'No tiers yet, so not on the site';
     const points = pointsOf(p);
     const title = T.titleFor(points);
-    return `${T.icon('star')}<b>${T.esc(title.name)}</b><span>· ${T.plural(points, 'point')}</span>`;
+    return `<b>${T.esc(title.name)}</b> · ${T.plural(points, 'point')}`;
   }
 
-  function cardHtml(p) {
+  function playerCard(p) {
     const title = T.titleFor(pointsOf(p));
     const regions = Object.keys(T.config.regions);
     if (p.region && !regions.includes(p.region)) regions.push(p.region);
@@ -350,7 +464,7 @@
     const modes = T.modes.map((m) => {
       const current = p.tiers[m.id] || '';
       const tier = current ? T.parseTier(current) : null;
-      const options = '<option value="">—</option>' +
+      const options = '<option value="">–</option>' +
         T.tiers.map((t) => `<option value="${t.id}"${t.id === current ? ' selected' : ''}>${t.id}</option>`).join('');
       return `<label class="ed-mode${tier ? ' has' : ''}"${tier ? ` style="--tc:${T.tierColor(tier)}"` : ''}>${T.modeIcon(m)}` +
         `<span class="ed-mode-name">${T.esc(m.name)}</span>` +
@@ -358,84 +472,137 @@
     }).join('');
     return `<div class="ed-player${p.isNew ? ' is-new' : ''}" data-id="${p.id}" style="--title-color:${title.color}">
         ${T.skinImg('face', skinOf(p), 'ed-face', 40)}
-        <div class="ed-info"><div class="ed-name">${T.esc(p.name)}</div><div class="ed-meta">${metaHtml(p)}</div></div>
+        <div><div class="ed-name">${T.esc(p.name)}</div><div class="ed-meta">${metaHtml(p)}</div></div>
         <div class="ed-side">
-          <select class="ed-region" data-field="region" aria-label="${T.esc(p.name)}: region">${regionOptions}</select>
-          <button class="icon-btn danger" type="button" data-ed="remove" aria-label="Remove ${T.esc(p.name)}" title="Remove from the list">${T.icon('trash')}</button>
+          <select class="select ed-region" data-field="region" aria-label="${T.esc(p.name)}: region">${regionOptions}</select>
+          <button class="icon-btn danger" type="button" data-ed="remove" aria-label="Remove ${T.esc(p.name)}" title="Remove">${T.icon('trash')}</button>
         </div>
         <div class="ed-modes">${modes}</div>
       </div>`;
   }
 
+  function hofCard(h) {
+    const cats = T.categories.slice();
+    if (h.category && !cats.some((c) => c.id === h.category)) cats.push(T.categoryOf(h.category));
+    const options = cats.map((c) => `<option value="${T.esc(c.id)}"${c.id === h.category ? ' selected' : ''}>${T.esc(c.name)}</option>`).join('');
+    return `<div class="ed-hof${h.isNew ? ' is-new' : ''}" data-hid="${h.id}">
+        ${T.skinImg('face', skinOf(h), 'ed-face', 40)}
+        <div>
+          <div class="ed-name">${T.esc(h.name)}</div>
+          <div class="ed-hof-fields">
+            <input class="input" data-hfield="title" value="${T.esc(h.title)}" placeholder="Known for (one line)" maxlength="80" aria-label="${T.esc(h.name)}: known for">
+            <select class="select" data-hfield="category" aria-label="${T.esc(h.name)}: category">${options}</select>
+            <input class="input" data-hfield="year" type="number" min="2000" max="2100" value="${h.year || ''}" placeholder="Year" aria-label="${T.esc(h.name)}: year inducted">
+            <label class="check"><input type="checkbox" data-hfield="featured"${h.featured ? ' checked' : ''}> Featured</label>
+            <textarea class="textarea wide" data-hfield="text" rows="2" maxlength="400" placeholder="A sentence or two about them" aria-label="${T.esc(h.name)}: description">${T.esc(h.text)}</textarea>
+          </div>
+        </div>
+        <button class="icon-btn danger" type="button" data-ed="remove-hof" aria-label="Remove ${T.esc(h.name)}" title="Remove">${T.icon('trash')}</button>
+      </div>`;
+  }
+
   function listHtml() {
-    if (!ed.players.length) {
-      return '<div class="ed-empty">No players yet. Type a Minecraft name above and press <b>Add player</b>.</div>';
+    const tiers = ed.tab === 'tiers';
+    const all = tiers ? ed.players : ed.hof;
+    if (!all.length) {
+      return `<div class="ed-empty">${tiers ? 'No players yet.' : 'Nobody in the Hall of Fame yet.'} Type a Minecraft name above and press <b>Add</b>.</div>`;
     }
     const q = ed.filter.trim().toLowerCase();
-    const shown = q ? ed.players.filter((p) => p.name.toLowerCase().includes(q)) : ed.players;
-    if (!shown.length) return `<div class="ed-empty">No player on the list matches “${T.esc(ed.filter.trim())}”.</div>`;
-    return shown.map(cardHtml).join('');
+    const shown = q ? all.filter((x) => x.name.toLowerCase().includes(q)) : all;
+    if (!shown.length) return `<div class="ed-empty">Nobody on this list matches “${T.esc(ed.filter.trim())}”.</div>`;
+    return shown.map(tiers ? playerCard : hofCard).join('');
   }
 
   function warningsHtml() {
-    if (!ed.warnings.length) return '';
-    const shown = ed.warnings.slice(0, 8).map((w) => `<li>${T.esc(w)}</li>`).join('');
-    const more = ed.warnings.length > 8 ? `<li>…and ${ed.warnings.length - 8} more</li>` : '';
-    return `<div class="ed-warnings"><b>Some of players.json could not be read.</b> These parts are left out, and saving removes them from the file:<ul>${shown}${more}</ul></div>`;
+    const all = ed.warnings.players.concat(ed.warnings.hof);
+    if (!all.length) return '';
+    const shown = all.slice(0, 8).map((w) => `<li>${T.esc(w)}</li>`).join('');
+    const more = all.length > 8 ? `<li>…and ${all.length - 8} more</li>` : '';
+    return `<div class="notice warn ed-warnings"><h2>Some entries could not be read</h2><p>They are left out, and saving removes them from the file.</p><ul>${shown}${more}</ul></div>`;
+  }
+
+  function staleHtml() {
+    const stale = Object.keys(DOCS).filter((d) => ed.doc[d].staleBase).map((d) => DOCS[d].file);
+    if (!stale.length) return '';
+    return `<div class="notice warn ed-warnings"><h2>Newer on GitHub</h2><p>${T.esc(stale.join(' and '))} changed on GitHub after this page loaded, maybe from another device. Saving replaces that change, so reload first unless you mean to.</p></div>`;
   }
 
   function connectionHtml() {
     const t = ed.target;
     if (ed.token && ed.connected) {
-      return `<div class="ed-conn ok"><span class="dot" aria-hidden="true"></span>
+      return `<div class="ed-conn ok">
         <span class="grow">Saving to <b>${T.esc(t.owner)}/${T.esc(t.repo)}</b>, branch <b>${T.esc(t.branch)}</b>.</span>
         <button class="btn btn-small" type="button" data-ed="connect">Settings</button>
         <button class="btn btn-small" type="button" data-ed="forget">Forget token</button></div>`;
     }
     if (ed.token) {
-      return `<div class="ed-conn"><span class="dot" aria-hidden="true"></span>
+      return `<div class="ed-conn">
         <span class="grow">A token is saved here, but GitHub has not confirmed it yet.</span>
         <button class="btn btn-small" type="button" data-ed="connect">Settings</button>
         <button class="btn btn-small" type="button" data-ed="forget">Forget token</button></div>`;
     }
-    return `<div class="ed-conn"><span class="dot" aria-hidden="true"></span>
-      <span class="grow">Not connected to GitHub. Connect once to save from this page, or press <b>Download</b> and upload the file to GitHub yourself.</span>
+    return `<div class="ed-conn">
+      <span class="grow">Not connected to GitHub. Connect once to save from here, or download the files and upload them yourself.</span>
       <button class="btn btn-small btn-primary" type="button" data-ed="connect">Connect GitHub</button></div>`;
   }
 
   function render() {
     // A GitHub answer can arrive after the editor was left: never draw over another page.
     if (!host || !ed || T.page !== 'edit') return;
+    const tiers = ed.tab === 'tiers';
     host.innerHTML = `<div class="editor-root">
-        <div class="page-head">
-          <div><h1 class="page-title">Tier editor</h1><div class="page-sub">Add any Minecraft player, pick their tier in each mode, then save.</div></div>
-          <a class="btn" href="#/rankings/overall">${T.icon('back')}<span>Back to rankings</span></a>
+        <div class="page-head" data-anim style="--i:0">
+          <div><h1 class="page-title">Editor</h1></div>
+          <div class="page-meta"><a class="link-btn" href="#/rankings/overall">Back to the site</a></div>
         </div>
-        ${connectionHtml()}
-        ${ed.staleBase ? '<div class="ed-warnings"><b>players.json on GitHub is newer than the list below.</b> Someone saved from another device after this page loaded. Saving replaces their change, so reload the page first unless you mean to.</div>' : ''}
-        <div class="editor-bar">
+        <div data-anim style="--i:1">${connectionHtml()}</div>
+        <div class="tabs ed-tabs" role="tablist" data-anim style="--i:2">
+          <button class="tab${tiers ? ' active' : ''}" type="button" role="tab" aria-selected="${tiers}" data-ed-tab="tiers">Tiers <span class="count">${ed.players.length}</span></button>
+          <button class="tab${tiers ? '' : ' active'}" type="button" role="tab" aria-selected="${!tiers}" data-ed-tab="hof">Hall of Fame <span class="count">${ed.hof.length}</span></button>
+          <span class="tab-ink" aria-hidden="true"></span>
+        </div>
+        <div class="editor-bar" data-anim style="--i:3">
           <form class="add-form" data-ed-form="add" autocomplete="off">
-            <input class="input" name="name" placeholder="Minecraft name" maxlength="16" spellcheck="false" autocapitalize="off" aria-label="Minecraft name to add">
-            <button class="btn btn-primary" type="submit">${T.icon('plus')}<span>Add player</span></button>
+            <input class="input" name="name" placeholder="${tiers ? 'Minecraft name' : 'Minecraft name to induct'}" maxlength="16" spellcheck="false" autocapitalize="off" aria-label="Minecraft name to add">
+            <button class="btn btn-primary" type="submit">${T.icon('plus')}<span>Add</span></button>
           </form>
-          <input class="input ed-filter" type="text" placeholder="Find a player on the list…" value="${T.esc(ed.filter)}" aria-label="Find a player on the list" spellcheck="false">
+          <input class="input ed-filter" type="text" placeholder="Filter this list" value="${T.esc(ed.filter)}" aria-label="Filter this list" spellcheck="false">
           <div class="ed-actions">
             <span class="dirty-flag" aria-live="polite"></span>
-            <button class="btn" type="button" data-ed="download" title="Download players.json">${T.icon('download')}<span>Download</span></button>
-            <button class="btn" type="button" data-ed="copy" title="Copy players.json">${T.icon('copy')}<span>Copy</span></button>
+            <button class="btn" type="button" data-ed="download" title="Download ${tiers ? 'players.json' : 'halloffame.json'}">${T.icon('download')}<span>Download</span></button>
+            <button class="btn" type="button" data-ed="copy" title="Copy ${tiers ? 'players.json' : 'halloffame.json'}">${T.icon('copy')}<span>Copy</span></button>
             <button class="btn btn-primary" type="button" data-ed="save">${T.icon('upload')}<span>Save</span></button>
           </div>
         </div>
         <div class="notice error ed-problem" hidden></div>
+        ${staleHtml()}
         ${warningsHtml()}
-        <div class="ed-list">${listHtml()}</div>
+        <div class="ed-list" data-anim style="--i:4">${listHtml()}</div>
       </div>`;
+    placeInk();
     updateDirty();
+  }
+
+  function placeInk() {
+    const bar = $('.editor-root .ed-tabs');
+    if (!bar) return;
+    const active = bar.querySelector('.tab.active');
+    const ink = bar.querySelector('.tab-ink');
+    ink.style.width = `${active.offsetWidth}px`;
+    ink.style.transform = `translateX(${active.offsetLeft}px)`;
   }
 
   function renderList() {
     const list = $('.editor-root .ed-list');
     if (list) list.innerHTML = listHtml();
+  }
+
+  function updateCounts() {
+    const tabs = document.querySelectorAll('.editor-root .ed-tabs .count');
+    if (tabs.length === 2) {
+      tabs[0].textContent = ed.players.length;
+      tabs[1].textContent = ed.hof.length;
+    }
   }
 
   function updateDirty() {
@@ -456,15 +623,20 @@
     updateDirty();
   }
 
-  function showProblem(html) {
+  function showProblem(title, html) {
     const box = $('.editor-root .ed-problem');
     if (!box) return;
-    box.innerHTML = `<h2>Not saved</h2><p>${html}</p>`;
+    box.innerHTML = `<h2>${T.esc(title)}</h2><p>${html}</p>`;
     box.hidden = false;
   }
 
-  function flash(id) {
-    const card = document.querySelector(`.editor-root .ed-player[data-id="${id}"]`);
+  function hideProblem() {
+    const box = $('.editor-root .ed-problem');
+    if (box) box.hidden = true;
+  }
+
+  function flash(selector) {
+    const card = document.querySelector(selector);
     if (!card) return;
     card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     card.classList.remove('flash');
@@ -477,9 +649,14 @@
     return card ? ed.players.find((p) => String(p.id) === card.dataset.id) : null;
   }
 
+  function findHof(element) {
+    const card = element.closest('.ed-hof');
+    return card ? ed.hof.find((h) => String(h.id) === card.dataset.hid) : null;
+  }
+
   // ---------- Actions ----------
 
-  function addPlayer(form) {
+  function add(form) {
     const input = form.elements.name;
     const name = input.value.trim();
     if (!name) { input.focus(); return; }
@@ -488,45 +665,71 @@
       input.focus();
       return;
     }
-    const existing = ed.players.find((p) => p.name.toLowerCase() === name.toLowerCase());
-    if (existing) {
-      T.toast(`${existing.name} is already on the list.`);
-      ed.filter = '';
-      $('.editor-root .ed-filter').value = '';
-      renderList();
-      flash(existing.id);
-      return;
-    }
-    const p = { id: ++seq, name, region: '', tiers: {}, keep: {}, extra: {}, isNew: true };
-    ed.players.unshift(p);
+    const tiers = ed.tab === 'tiers';
+    const list = tiers ? ed.players : ed.hof;
+    const existing = list.find((x) => x.name.toLowerCase() === name.toLowerCase());
     ed.filter = '';
     $('.editor-root .ed-filter').value = '';
+    if (existing) {
+      T.toast(`${existing.name} is already on this list.`);
+      renderList();
+      flash(tiers ? `.editor-root .ed-player[data-id="${existing.id}"]` : `.editor-root .ed-hof[data-hid="${existing.id}"]`);
+      return;
+    }
+    let entry;
+    if (tiers) {
+      entry = { id: ++seq, name, region: '', tiers: {}, keep: {}, extra: {}, isNew: true };
+      ed.players.unshift(entry);
+    } else {
+      const known = ed.players.find((p) => p.name.toLowerCase() === name.toLowerCase());
+      entry = {
+        id: ++seq,
+        name: known ? known.name : name,
+        category: T.categories.length ? T.categories[0].id : '',
+        year: new Date().getFullYear(),
+        title: '',
+        text: '',
+        featured: false,
+        extra: {},
+        isNew: true
+      };
+      ed.hof.unshift(entry);
+    }
     input.value = '';
     renderList();
+    updateCounts();
     updateDirty();
-    flash(p.id);
-    T.toast(`Added ${name}. Now pick their tiers.`);
+    flash(tiers ? `.editor-root .ed-player[data-id="${entry.id}"]` : `.editor-root .ed-hof[data-hid="${entry.id}"]`);
+    T.toast(tiers ? `Added ${entry.name}. Now pick their tiers.` : `Added ${entry.name}. Fill in what they are known for.`);
   }
 
-  function removePlayer(p) {
-    if (!confirm(`Remove ${p.name} from the tier list?`)) return;
-    ed.players = ed.players.filter((x) => x !== p);
+  function remove(list, entry, what) {
+    if (!confirm(`Remove ${entry.name} from ${what}?`)) return;
+    const i = list.indexOf(entry);
+    if (i >= 0) list.splice(i, 1);
     renderList();
+    updateCounts();
     updateDirty();
-    T.toast(`Removed ${p.name}. Save to make it final.`);
+    T.toast(`Removed ${entry.name}. Save to make it final.`);
   }
 
   function download() {
-    const blob = new Blob([textOf(buildData())], { type: 'application/json' });
+    const doc = ed.tab === 'tiers' ? 'players' : 'hof';
+    const blob = new Blob([fileText(doc, build(doc))], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'players.json';
+    link.download = DOCS[doc].file;
     document.body.appendChild(link);
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
-    T.toast('Downloaded players.json. Upload it into the data folder on GitHub.');
+    T.toast(`Downloaded ${DOCS[doc].file}. Upload it into the data folder on GitHub.`);
+  }
+
+  function copy() {
+    const doc = ed.tab === 'tiers' ? 'players' : 'hof';
+    T.copyText(fileText(doc, build(doc)), `Copied. Paste it over data/${DOCS[doc].file} on GitHub.`);
   }
 
   function forgetToken() {
@@ -534,7 +737,7 @@
     storeToken('', false);
     ed.token = '';
     ed.connected = false;
-    ed.sha = null;
+    for (const doc of Object.keys(DOCS)) ed.doc[doc].sha = null;
     render();
     T.toast('Token forgotten.');
   }
@@ -543,8 +746,8 @@
     const t = ed.target;
     ed.saveAfterConnect = !!thenSave;
     const dialog = T.showModal(`<div class="modal-body">
-        <h2>Save straight to GitHub</h2>
-        <p>Saving changes <code>${T.esc(t.path)}</code> in the site's GitHub repository. For that the editor needs a token, a key that can change that one repository. It stays in this browser and is only ever sent to GitHub.</p>
+        <h2>Connect GitHub</h2>
+        <p>Saving changes the files in <code>${T.esc(t.dir || '/')}</code> of the site's GitHub repository. For that the editor needs a token, a key for that one repository. It stays in this browser and is only ever sent to GitHub.</p>
         <form class="form" data-ed-form="connect" autocomplete="off">
           <label>GitHub token<input class="input" name="token" type="password" placeholder="github_pat_…" spellcheck="false" autocomplete="off" autofocus></label>
           <div class="form-row">
@@ -554,10 +757,10 @@
           </div>
           <label class="check"><input type="checkbox" name="remember" checked> Remember on this device</label>
           <details${ed.token ? '' : ' open'}>
-            <summary>How to make a token (two minutes)</summary>
+            <summary>How to make a token</summary>
             <ol>
               <li>On GitHub, open <b>Settings → Developer settings → Personal access tokens → Fine-grained tokens</b>, and press <b>Generate new token</b>.</li>
-              <li>Give it a name, like <i>tier editor</i>, and an expiry date.</li>
+              <li>Give it a name and pick an <b>expiration</b> from the list, such as 90 days.</li>
               <li><b>Repository access:</b> <i>Only select repositories</i>, and pick <b>${T.esc(t.repo || 'the site\'s repository')}</b>.</li>
               <li><b>Permissions:</b> add <b>Contents</b> and set it to <b>Read and write</b>.</li>
               <li>Press <b>Generate token</b>, copy it (it starts with <code>github_pat_</code>) and paste it above.</li>
@@ -578,7 +781,7 @@
     const error = form.querySelector('.form-error');
     const fail = (message) => { error.textContent = message; error.hidden = false; };
     const token = f.token.value.trim() || ed.token;
-    const target = { owner: f.owner.value.trim(), repo: f.repo.value.trim(), branch: f.branch.value.trim() || 'main', path: ed.target.path };
+    const target = { owner: f.owner.value.trim(), repo: f.repo.value.trim(), branch: f.branch.value.trim() || 'main', dir: ed.target.dir };
     if (!token) { fail('Paste a token first.'); return; }
     if (/\s/.test(token)) { fail('The token has a space in it. Copy it again.'); return; }
     if (!target.owner || !target.repo) { fail('Fill in the owner and the repository.'); return; }
@@ -587,24 +790,29 @@
     submit.disabled = true;
     submit.textContent = 'Checking…';
     error.hidden = true;
-    const before = { token: ed.token, target: ed.target, connected: ed.connected, sha: ed.sha };
+    const before = {
+      token: ed.token, target: ed.target, connected: ed.connected,
+      doc: JSON.parse(JSON.stringify(ed.doc))
+    };
     ed.token = token;
     ed.target = target;
     try {
-      const outcome = await refreshFromGitHub();
+      const outcomes = await refreshFromGitHub();
       storeToken(token, f.remember.checked);
       storeTarget(target);
       T.hideModal();
       render();
-      if (outcome === 'missing') T.toast(`Connected. ${target.repo} has no ${target.path} yet; saving will create it.`);
-      else if (outcome === 'changed') T.toast('Connected. players.json on GitHub is newer than this page; saving replaces it with your list.', true);
+      if (Object.values(outcomes).includes('changed')) T.toast('Connected. Something on GitHub is newer than this page; see the note below.', true);
       else T.toast(`Connected to ${target.owner}/${target.repo}.`);
       if (ed.saveAfterConnect) {
         ed.saveAfterConnect = false;
         save();
       }
     } catch (e) {
-      Object.assign(ed, before);
+      ed.token = before.token;
+      ed.target = before.target;
+      ed.connected = before.connected;
+      ed.doc = before.doc;
       fail(e.message);
       submit.disabled = false;
       submit.textContent = 'Connect';
@@ -615,24 +823,47 @@
 
   document.addEventListener('submit', (e) => {
     const form = e.target;
-    if (form.matches('.editor-root form[data-ed-form="add"]')) { e.preventDefault(); addPlayer(form); }
+    if (form.matches('.editor-root form[data-ed-form="add"]')) { e.preventDefault(); add(form); }
     else if (form.matches('form[data-ed-form="connect"]')) { e.preventDefault(); connect(form); }
   });
 
   document.addEventListener('click', (e) => {
+    if (!ed) return;
+    const tab = e.target.closest('.editor-root [data-ed-tab]');
+    if (tab) {
+      if (ed.tab === tab.dataset.edTab) return;
+      ed.tab = tab.dataset.edTab;
+      ed.filter = '';
+      render();
+      return;
+    }
     const button = e.target.closest('.editor-root [data-ed]');
-    if (!button || !ed) return;
+    if (!button) return;
     const action = button.dataset.ed;
-    if (action === 'remove') { const p = findPlayer(button); if (p) removePlayer(p); }
+    if (action === 'remove') { const p = findPlayer(button); if (p) remove(ed.players, p, 'the tier list'); }
+    else if (action === 'remove-hof') { const h = findHof(button); if (h) remove(ed.hof, h, 'the Hall of Fame'); }
     else if (action === 'download') download();
-    else if (action === 'copy') T.copyText(textOf(buildData()), 'Copied. Paste it over data/players.json on GitHub.');
+    else if (action === 'copy') copy();
     else if (action === 'save') save();
     else if (action === 'connect') openConnect(false);
     else if (action === 'forget') forgetToken();
   });
 
+  function onHofField(e) {
+    const h = findHof(e.target);
+    if (!h) return;
+    const field = e.target.dataset.hfield;
+    if (field === 'featured') h.featured = e.target.checked;
+    else if (field === 'year') {
+      const n = parseInt(e.target.value, 10);
+      h.year = Number.isInteger(n) && n > 0 ? n : null;
+    } else h[field] = e.target.value;
+    updateDirty();
+  }
+
   document.addEventListener('change', (e) => {
-    if (!ed || !e.target.closest('.editor-root .ed-player')) return;
+    if (!ed || !e.target.closest('.editor-root')) return;
+    if (e.target.matches('[data-hfield]')) { onHofField(e); return; }
     const p = findPlayer(e.target);
     if (!p) return;
     if (e.target.matches('select[data-mode]')) {
@@ -654,7 +885,12 @@
   });
 
   document.addEventListener('input', (e) => {
-    if (!ed || !e.target.matches('.editor-root .ed-filter')) return;
+    if (!ed) return;
+    if (e.target.matches('.editor-root [data-hfield="title"], .editor-root [data-hfield="text"], .editor-root [data-hfield="year"]')) {
+      onHofField(e);
+      return;
+    }
+    if (!e.target.matches('.editor-root .ed-filter')) return;
     ed.filter = e.target.value;
     renderList();
   });
@@ -665,20 +901,30 @@
       e.returnValue = '';
     }
   });
+  window.addEventListener('resize', () => { if (ed && T.page === 'edit') placeInk(); });
 
   T.editor = {
     mount(element) {
       host = element;
       if (!ed) {
+        const warnings = { players: [], hof: [] };
+        try { warnings.players = T.normalizePlayers(T.rawPlayers).warnings; } catch (e) { /* shown by the site */ }
+        try { warnings.hof = T.normalizeHof(T.rawHof || { inductees: [] }).warnings; } catch (e) { /* shown by the site */ }
         ed = {
-          players: [], top: {}, savedData: null, savedText: '', justSaved: false,
-          filter: '', warnings: T.warnings.slice(),
-          token: readToken(), target: readTarget(), connected: false, sha: null, staleBase: false,
+          tab: 'tiers',
+          players: [], top: {}, hof: [], hofTop: {},
+          doc: {
+            players: { sha: null, savedText: '', savedData: null, staleBase: false },
+            hof: { sha: null, savedText: '', savedData: null, staleBase: false }
+          },
+          justSaved: false, filter: '', warnings,
+          token: readToken(), target: readTarget(), connected: false,
           busy: false, busyText: '', saveAfterConnect: false
         };
-        load(T.rawPlayers);
+        load('players', T.rawPlayers);
+        load('hof', T.rawHof || { inductees: [] });
         if (ed.token) {
-          // A remembered token: start from GitHub's copy, which is never behind the site's.
+          // A remembered token: start from GitHub's copies, which are never behind the site's.
           refreshFromGitHub().then(render, (e) => { ed.connected = false; render(); T.toast(e.message, true); });
         }
       }
