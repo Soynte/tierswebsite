@@ -25,6 +25,18 @@
       }
     },
     {
+      "name": "Boggas",
+      "tiers": {
+        "classic": "LT1",
+        "sword": "LT1",
+        "trident": "LT2",
+        "pot": "LT3",
+        "uhc": "HT2",
+        "shield": "LT3",
+        "smp": "LT3"
+      }
+    },
+    {
       "name": "DeeTeaYasuo",
       "tiers": {
         "classic": "HT2",
