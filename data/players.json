@@ -118,6 +118,18 @@
       }
     },
     {
+      "name": "Kudain",
+      "tiers": {
+        "classic": "HT1",
+        "sword": "HT1",
+        "trident": "HT1",
+        "pot": "HT1",
+        "uhc": "HT1",
+        "shield": "HT1",
+        "smp": "HT1"
+      }
+    },
+    {
       "name": "Martin4206969",
       "region": "EU",
       "tiers": {
