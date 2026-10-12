@@ -1,6 +1,16 @@
 {
   "inductees": [
     {
+      "name": "NotInfinityy",
+      "role": "Developer",
+      "color": "#c49bf2",
+      "from": "2025",
+      "to": "2025",
+      "quote": "\"grrrrrrrrrrrrr\"",
+      "text": "Main developer of CombatAdvanced",
+      "featured": true
+    },
+    {
       "name": "Soynte",
       "role": "Owner",
       "color": "#e8b931",
