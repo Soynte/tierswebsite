@@ -1,0 +1,21 @@
+{
+  "players": [
+    {
+      "name": "CombatSnapshot",
+      "tiers": {
+        "classic": "LT3",
+        "sword": "HT4",
+        "pot": "LT4"
+      }
+    },
+    {
+      "name": "Soynte",
+      "tiers": {
+        "classic": "HT2",
+        "sword": "LT2",
+        "uhc": "HT3",
+        "smp": "LT3"
+      }
+    }
+  ]
+}

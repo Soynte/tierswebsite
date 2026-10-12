@@ -1,0 +1,62 @@
+{
+  "siteName": "CombatAdvanced Tiers",
+  "serverName": "CombatAdvanced",
+  "serverIp": "dev.combatadvanced.com",
+  "discord": "https://discord.gg/qNUtDkyqZu",
+
+  "github": {
+    "owner": "",
+    "repo": "",
+    "branch": "main"
+  },
+
+  "modes": [
+    { "id": "classic", "name": "Classic", "icon": "classic" },
+    { "id": "sword", "name": "Sword", "icon": "sword" },
+    { "id": "trident", "name": "Trident", "icon": "trident" },
+    { "id": "pot", "name": "Pot", "icon": "pot" },
+    { "id": "uhc", "name": "UHC", "icon": "uhc" },
+    { "id": "shield", "name": "Shield", "icon": "shield" },
+    { "id": "smp", "name": "SMP", "icon": "smp" }
+  ],
+
+  "points": {
+    "HT1": 60,
+    "LT1": 45,
+    "HT2": 30,
+    "LT2": 20,
+    "HT3": 10,
+    "LT3": 6,
+    "HT4": 4,
+    "LT4": 3,
+    "HT5": 2,
+    "LT5": 1
+  },
+
+  "titles": [
+    { "name": "Combat Grandmaster", "minPoints": 400, "color": "#fbbf24" },
+    { "name": "Combat Master", "minPoints": 250, "color": "#c084fc" },
+    { "name": "Combat Ace", "minPoints": 100, "color": "#f87171" },
+    { "name": "Combat Specialist", "minPoints": 50, "color": "#38bdf8" },
+    { "name": "Combat Cadet", "minPoints": 20, "color": "#34d399" },
+    { "name": "Combat Novice", "minPoints": 10, "color": "#a3b1c6" },
+    { "name": "Rookie", "minPoints": 0, "color": "#7b8496" }
+  ],
+
+  "regions": {
+    "NA": "#f87171",
+    "EU": "#4ade80",
+    "SA": "#fbbf24",
+    "AS": "#c084fc",
+    "AU": "#22d3ee",
+    "ME": "#facc15",
+    "AF": "#fb923c"
+  },
+
+  "skins": {
+    "bust": "https://render.crafty.gg/3d/bust/{name}",
+    "head": "https://mc-heads.net/head/{name}/128",
+    "face": "https://mc-heads.net/avatar/{name}/64",
+    "faceBackup": "https://minotar.net/helm/{name}/64"
+  }
+}
