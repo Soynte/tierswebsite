@@ -145,6 +145,18 @@
       }
     },
     {
+      "name": "Teramaster",
+      "tiers": {
+        "classic": "HT4",
+        "sword": "LT2",
+        "trident": "LT5",
+        "pot": "LT4",
+        "uhc": "LT4",
+        "shield": "HT4",
+        "smp": "LT4"
+      }
+    },
+    {
       "name": "TGT__",
       "tiers": {
         "classic": "HT2",
@@ -154,6 +166,18 @@
         "uhc": "LT3",
         "shield": "LT3",
         "smp": "LT3"
+      }
+    },
+    {
+      "name": "Tiktube",
+      "tiers": {
+        "classic": "HT3",
+        "sword": "LT3",
+        "trident": "LT3",
+        "pot": "LT4",
+        "uhc": "LT4",
+        "shield": "LT4",
+        "smp": "LT4"
       }
     },
     {
