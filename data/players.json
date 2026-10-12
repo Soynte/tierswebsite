@@ -100,7 +100,7 @@
       "name": "Kraney",
       "tiers": {
         "classic": "HT3",
-        "sword": "LT2",
+        "sword": "HT2",
         "trident": "HT3",
         "pot": "HT4",
         "uhc": "HT4",
@@ -124,7 +124,7 @@
       "name": "NormalX",
       "tiers": {
         "classic": "HT3",
-        "sword": "HT3",
+        "sword": "LT2",
         "trident": "HT3",
         "pot": "HT4",
         "uhc": "HT4",
@@ -220,7 +220,7 @@
       "name": "Soynte",
       "tiers": {
         "classic": "LT2",
-        "sword": "HT3",
+        "sword": "LT2",
         "trident": "LT2",
         "pot": "LT3",
         "uhc": "LT3",
@@ -268,7 +268,7 @@
       "name": "TGT__",
       "tiers": {
         "classic": "HT2",
-        "sword": "HT3",
+        "sword": "LT2",
         "trident": "HT2",
         "pot": "HT3",
         "uhc": "LT3",
