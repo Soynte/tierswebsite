@@ -160,14 +160,9 @@
     return { list: out, top: topOf(raw, 'inductees') };
   }
 
-  function startYear(h) {
-    const m = /(\d{4})/.exec(h.from || '');
-    return m ? Number(m[1]) : 0;
-  }
-
   function buildHof(list, top) {
+    // Written in the editor's order: the order the Hall of Fame page shows.
     const inductees = (list || ed.hof).slice()
-      .sort((a, b) => startYear(b) - startYear(a) || byName(a, b))
       .map((h) => {
         const out = { name: h.name };
         if (h.role.trim()) out.role = h.role.trim();
@@ -386,6 +381,8 @@
       else if (JSON.stringify(was) !== JSON.stringify(h)) parts.push(`update ${h.name}`);
     }
     for (const [key, h] of old) if (!now.has(key)) parts.push(`remove ${h.name}`);
+    const order = (d) => d.inductees.map((h) => h.name.toLowerCase()).filter((k) => old.has(k) && now.has(k)).join();
+    if (order(before) !== order(after)) parts.push('reorder');
     return summary('Hall of Fame', parts);
   }
 
@@ -512,7 +509,12 @@
             ${label('About', `<textarea class="textarea" data-hfield="text" rows="2" maxlength="400" placeholder="A sentence or two about them">${T.esc(h.text)}</textarea>`, 'wide')}
           </div>
         </div>
-        <button class="icon-btn danger" type="button" data-ed="remove-hof" aria-label="Remove ${T.esc(h.name)}" title="Remove">${T.icon('trash')}</button>
+        <div class="ed-hof-tools">
+          <button class="icon-btn" type="button" data-ed="hof-up" aria-label="Move ${T.esc(h.name)} up" title="Move up"${ed.hof.indexOf(h) === 0 ? ' disabled' : ''}>${T.icon('up')}</button>
+          <span class="pos" title="Position on the page">${ed.hof.indexOf(h) + 1}</span>
+          <button class="icon-btn" type="button" data-ed="hof-down" aria-label="Move ${T.esc(h.name)} down" title="Move down"${ed.hof.indexOf(h) === ed.hof.length - 1 ? ' disabled' : ''}>${T.icon('down')}</button>
+          <button class="icon-btn danger" type="button" data-ed="remove-hof" aria-label="Remove ${T.esc(h.name)}" title="Remove">${T.icon('trash')}</button>
+        </div>
       </div>`;
   }
 
@@ -731,6 +733,23 @@
     T.toast(`Removed ${entry.name}. Save to make it final.`);
   }
 
+  /** Swaps an inductee with the one above or below; the page shows them in this order. */
+  function moveHof(h, step) {
+    const i = ed.hof.indexOf(h);
+    const j = i + step;
+    if (i < 0 || j < 0 || j >= ed.hof.length) return;
+    ed.hof[i] = ed.hof[j];
+    ed.hof[j] = h;
+    renderList();
+    updateDirty();
+    const card = document.querySelector(`.editor-root .ed-hof[data-hid="${h.id}"]`);
+    if (card) {
+      card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      const btn = card.querySelector(`[data-ed="${step < 0 ? 'hof-up' : 'hof-down'}"]`);
+      if (btn && !btn.disabled) btn.focus({ preventScroll: true });
+    }
+  }
+
   function download() {
     const doc = ed.tab === 'tiers' ? 'players' : 'hof';
     const blob = new Blob([fileText(doc, build(doc))], { type: 'application/json' });
@@ -860,6 +879,7 @@
     const action = button.dataset.ed;
     if (action === 'remove') { const p = findPlayer(button); if (p) remove(ed.players, p, 'the tier list'); }
     else if (action === 'remove-hof') { const h = findHof(button); if (h) remove(ed.hof, h, 'the Hall of Fame'); }
+    else if (action === 'hof-up' || action === 'hof-down') { const h = findHof(button); if (h) moveHof(h, action === 'hof-up' ? -1 : 1); }
     else if (action === 'download') download();
     else if (action === 'copy') copy();
     else if (action === 'save') save();

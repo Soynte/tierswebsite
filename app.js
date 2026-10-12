@@ -96,6 +96,8 @@
     copy: `<g ${STROKE}><rect x="9" y="9" width="11" height="11" rx="1.5"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></g>`,
     discord: `<g ${STROKE}><path d="M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-9l-5 4v-4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></g>`,
     back: `<g ${STROKE}><path d="M15 5l-7 7 7 7"/></g>`,
+    up: `<g ${STROKE}><path d="M6 15l6-6 6 6"/></g>`,
+    down: `<g ${STROKE}><path d="M6 9l6 6 6-6"/></g>`,
     plus: `<g ${STROKE}><path d="M12 5v14M5 12h14"/></g>`,
     download: `<g ${STROKE}><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></g>`,
     upload: `<g ${STROKE}><path d="M12 15V4M7 9l5-5 5 5M5 20h14"/></g>`,
@@ -590,6 +592,11 @@
     return `<span class="region" style="--rc:${state.config.regions[region] || '#a3a8b0'}">${esc(region)}</span>`;
   }
 
+  /** In the lists a retired tier only shows while retired tiers are counted; profiles always show it. */
+  function listTier(tier) {
+    return tier && tier.retired && !state.filter.retired ? null : tier;
+  }
+
   function tierChip(mode, tier) {
     if (!tier) {
       return `<div class="tier none" data-tip="${esc(mode.name)}: no tier" aria-hidden="true"><span class="tier-icon">${modeIcon(mode)}</span><span class="tier-label">–</span></div>`;
@@ -710,7 +717,7 @@
         <div class="bust-box">${skinImg('bust', p, 'rank-bust', 60)}</div>
         <div class="player"><div class="p-name">${esc(p.name)}</div><div class="p-sub"><span class="p-title">${esc(title.name)}</span><span>${plural(points, 'point')}</span></div></div>
         ${hasRegion ? `<div class="region-cell">${regionText(p.region)}</div>` : ''}
-        <div class="tiers">${state.modes.map((m) => tierChip(m, p.tiers[m.id])).join('')}</div>
+        <div class="tiers">${state.modes.map((m) => tierChip(m, listTier(p.tiers[m.id]))).join('')}</div>
       </a>`).join('');
     const board = list.length
       ? `<div class="board${hasRegion ? '' : ' no-region'}">
@@ -724,7 +731,7 @@
   function renderMode(mode) {
     renderTabs(mode.id);
     const f = state.filter;
-    const inMode = state.players.filter((p) => p.tiers[mode.id] && (!f.region || p.region === f.region))
+    const inMode = state.players.filter((p) => listTier(p.tiers[mode.id]) && (!f.region || p.region === f.region))
       .sort((a, b) => b.points - a.points || a.key.localeCompare(b.key));
     const groups = [...new Set(state.tiers.map((t) => t.group))].sort((a, b) => a - b);
     const columns = groups.map((group, gi) => {
@@ -779,9 +786,9 @@
   }
 
   function hofContent(list) {
-    const byNewest = (a, b) => b.startYear - a.startYear || a.order - b.order;
-    let featured = list.filter((h) => h.featured).sort(byNewest);
-    if (!featured.length) featured = list.slice().sort(byNewest).slice(0, 3);
+    // Everything shows in the order of halloffame.json, which the editor's arrows set.
+    let featured = list.filter((h) => h.featured);
+    if (!featured.length) featured = list.slice(0, 3);
     featured = featured.slice(0, 6);
 
     const plaques = featured.map((h, i) => {
@@ -800,30 +807,21 @@
         </a>`;
     }).join('');
 
-    const years = new Map();
-    for (const h of list.slice().sort(byNewest)) {
-      const key = h.startYear || 0;
-      if (!years.has(key)) years.set(key, []);
-      years.get(key).push(h);
-    }
     let n = featured.length + 3;
-    const ledger = [...years.entries()].map(([year, entries]) => `<section class="hof-year"${anim(n++)}>
-        <div class="hof-year-num">${year || '–'}</div>
-        <div>${entries.sort((a, b) => a.key.localeCompare(b.key)).map((h) => {
-          const period = periodText(h);
-          return `<div class="hof-entry" style="--cc:${h.color}">
-              ${skinImg('face', h, '', 40)}
-              <div>
-                <div class="hof-entry-name"><a href="#/player/${encodeURIComponent(h.name)}">${esc(h.name)}</a>${h.role ? ` <span class="hof-entry-role">${esc(h.role)}</span>` : ''}</div>
-                ${h.quote ? `<div class="hof-entry-quote">${esc(h.quote)}</div>` : ''}
-                ${h.text ? `<div class="hof-entry-cite">${esc(h.text)}</div>` : ''}
-              </div>
-              <div class="hof-entry-period">${esc(period)}</div>
-            </div>`;
-        }).join('')}</div>
-      </section>`).join('');
+    const ledger = list.map((h) => {
+      const period = periodText(h);
+      return `<div class="hof-entry" style="--cc:${h.color}"${anim(n++)}>
+          ${skinImg('face', h, '', 40)}
+          <div>
+            <div class="hof-entry-name"><a href="#/player/${encodeURIComponent(h.name)}">${esc(h.name)}</a>${h.role ? ` <span class="hof-entry-role">${esc(h.role)}</span>` : ''}</div>
+            ${h.quote ? `<div class="hof-entry-quote">${esc(h.quote)}</div>` : ''}
+            ${h.text ? `<div class="hof-entry-cite">${esc(h.text)}</div>` : ''}
+          </div>
+          <div class="hof-entry-period">${esc(period)}</div>
+        </div>`;
+    }).join('');
 
-    return `<div class="hof-featured">${plaques}</div><div class="hof-ledger"><h2 class="hof-ledger-title"${anim(featured.length + 2)}>Every inductee</h2>${ledger}</div>`;
+    return `<div class="hof-featured">${plaques}</div><div class="hof-ledger"><h2 class="hof-ledger-title"${anim(featured.length + 2)}>Every inductee</h2><div class="hof-list">${ledger}</div></div>`;
   }
 
   function renderEditor() {
