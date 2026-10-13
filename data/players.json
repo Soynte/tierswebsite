@@ -239,13 +239,13 @@
       "name": "Soynte",
       "region": "EU",
       "tiers": {
-        "classic": "RLT2",
-        "sword": "RLT2",
-        "trident": "RLT2",
-        "pot": "RLT2",
-        "uhc": "RLT2",
-        "shield": "RLT2",
-        "smp": "RLT2"
+        "classic": "HT2",
+        "sword": "LT2",
+        "trident": "HT2",
+        "pot": "LT2",
+        "uhc": "LT2",
+        "shield": "LT2",
+        "smp": "LT2"
       }
     },
     {
