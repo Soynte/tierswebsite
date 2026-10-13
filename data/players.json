@@ -2,14 +2,6 @@
   "updated": "2026-10-13",
   "players": [
     {
-      "name": "_Axelotl_",
-      "tiers": {
-        "classic": "HT1",
-        "sword": "HT1",
-        "trident": "HT1"
-      }
-    },
-    {
       "name": "Asimoa",
       "region": "EU",
       "tiers": {
@@ -280,6 +272,18 @@
         "uhc": "HT4",
         "shield": "LT3",
         "smp": "LT2"
+      }
+    },
+    {
+      "name": "Swight",
+      "tiers": {
+        "classic": "LT1",
+        "sword": "LT2",
+        "trident": "LT2",
+        "pot": "HT2",
+        "uhc": "HT1",
+        "shield": "HT1",
+        "smp": "HT2"
       }
     },
     {
