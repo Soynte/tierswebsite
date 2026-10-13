@@ -43,11 +43,11 @@
     {
       "name": "coldified",
       "tiers": {
-        "classic": "LT1",
-        "sword": "LT1",
-        "trident": "LT1",
-        "pot": "LT1",
-        "uhc": "LT1",
+        "classic": "HT1",
+        "sword": "HT1",
+        "trident": "HT1",
+        "pot": "HT1",
+        "uhc": "HT1",
         "shield": "LT1",
         "smp": "LT1"
       }
