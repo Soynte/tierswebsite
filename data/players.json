@@ -240,12 +240,12 @@
       "region": "EU",
       "tiers": {
         "classic": "LT2",
-        "sword": "HT3",
+        "sword": "LT2",
         "trident": "LT2",
-        "pot": "LT3",
-        "uhc": "HT3",
-        "shield": "LT3",
-        "smp": "LT3"
+        "pot": "LT2",
+        "uhc": "LT2",
+        "shield": "LT2",
+        "smp": "LT2"
       }
     },
     {
