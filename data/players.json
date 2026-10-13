@@ -5,13 +5,7 @@
       "name": "Asimoa",
       "region": "EU",
       "tiers": {
-        "classic": "HT3",
-        "sword": "LT2",
-        "trident": "LT3",
-        "pot": "LT2",
-        "uhc": "HT4",
-        "shield": "HT4",
-        "smp": "HT4"
+        "classic": "HT3"
       }
     },
     {
