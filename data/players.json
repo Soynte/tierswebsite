@@ -41,6 +41,18 @@
       }
     },
     {
+      "name": "coldified",
+      "tiers": {
+        "classic": "LT1",
+        "sword": "LT1",
+        "trident": "LT1",
+        "pot": "LT1",
+        "uhc": "LT1",
+        "shield": "LT1",
+        "smp": "LT1"
+      }
+    },
+    {
       "name": "decobra",
       "region": "EU",
       "tiers": {
