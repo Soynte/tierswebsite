@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-13",
+  "updated": "2026-10-14",
   "players": [
     {
       "name": "Asimoa",
@@ -48,8 +48,8 @@
         "trident": "HT1",
         "pot": "HT1",
         "uhc": "HT1",
-        "shield": "LT1",
-        "smp": "LT1"
+        "shield": "HT1",
+        "smp": "HT1"
       }
     },
     {
