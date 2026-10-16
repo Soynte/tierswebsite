@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-14",
+  "updated": "2026-10-16",
   "players": [
     {
       "name": "Asimoa",
@@ -38,18 +38,6 @@
         "uhc": "HT1",
         "shield": "LT3",
         "smp": "LT3"
-      }
-    },
-    {
-      "name": "coldified",
-      "tiers": {
-        "classic": "HT1",
-        "sword": "HT1",
-        "trident": "HT1",
-        "pot": "HT1",
-        "uhc": "HT1",
-        "shield": "HT1",
-        "smp": "HT1"
       }
     },
     {
@@ -284,18 +272,6 @@
         "uhc": "HT4",
         "shield": "LT3",
         "smp": "LT2"
-      }
-    },
-    {
-      "name": "Swight",
-      "tiers": {
-        "classic": "LT1",
-        "sword": "LT2",
-        "trident": "LT2",
-        "pot": "HT2",
-        "uhc": "HT1",
-        "shield": "HT1",
-        "smp": "HT2"
       }
     },
     {
