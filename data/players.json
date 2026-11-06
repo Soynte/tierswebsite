@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-16",
+  "updated": "2026-11-06",
   "players": [
     {
       "name": "Asimoa",
@@ -239,13 +239,13 @@
       "name": "Soynte",
       "region": "EU",
       "tiers": {
-        "classic": "HT2",
-        "sword": "LT1",
-        "trident": "HT2",
-        "pot": "HT1",
-        "uhc": "HT2",
-        "shield": "HT2",
-        "smp": "HT2"
+        "classic": "RHT2",
+        "sword": "RLT1",
+        "trident": "RHT2",
+        "pot": "RHT1",
+        "uhc": "RHT2",
+        "shield": "RHT2",
+        "smp": "RHT2"
       }
     },
     {
