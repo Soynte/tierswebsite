@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-06",
+  "updated": "2026-11-10",
   "players": [
     {
       "name": "Asimoa",
@@ -245,7 +245,7 @@
         "pot": "RHT1",
         "uhc": "RHT2",
         "shield": "RHT2",
-        "smp": "RHT2"
+        "smp": "HT1"
       }
     },
     {
